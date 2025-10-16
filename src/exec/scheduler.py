@@ -8,6 +8,7 @@ import yaml
 import pyautogui as pg
 
 from src.exec.runner import ActionRunner
+from src.exec.watchdog import assert_window_alive
 from src.ocr.extract import scan_once
 from src.storage.db import ensure_db, insert_action, insert_snapshot, new_run, end_run, upsert_item
 
@@ -33,6 +34,7 @@ class JobScheduler:
 
     # ---------- Jobs ----------
     def _job_collect_watchlist(self, run_id: int, job: Dict[str, Any]):
+        assert_window_alive()
         views = [v.strip().upper() for v in job.get("views", ["BUY_LIST"])]
         items = job.get("items", [])  # pode vir de arquivo ou inline
         watchlist_csv = job.get("watchlist_csv")
@@ -67,6 +69,7 @@ class JobScheduler:
                 upsert_item(self.con, name=item, category=None, subcategory=None, tags_json=None, source="watchlist")
 
     def _job_collect_category(self, run_id: int, job: Dict[str, Any]):
+        assert_window_alive()
         """
         Requer no actions.yaml uma ação de navegação (ex.: open_category_Ores).
         Depois varre a lista com 'down', lendo o primeiro nome e cadastrando.

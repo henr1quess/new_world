@@ -256,6 +256,17 @@ python -m src.main dashboard
 ```
 Acesse o link local (normalmente `http://localhost:8501`) para filtrar e **Exportar CSV**.
 
+### 9.4 Jobs (sequências automatizadas)
+- Defina um arquivo YAML com uma lista de jobs, ex.: `jobs.yaml`.
+- Tipos suportados:
+  - `collect_watchlist`: abre itens (via `open_item`) e coleta BUY/SELL.
+  - `collect_category`: navega por uma categoria pré-configurada e cadastra itens.
+- Execute:
+  ```bash
+  python -m src.main jobs --jobs-file jobs.yaml
+  ```
+- O scheduler garante que a janela monitorada está ativa antes de iniciar cada job.
+
 ---
 
 ## 10) Roadmap (resumo)
