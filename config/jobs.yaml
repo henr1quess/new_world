@@ -1,0 +1,18 @@
+# config/jobs.yaml
+# Edite enquanto o bot roda: use `python -m src.main watch_jobs`
+jobs:
+  # 1) Coletar uma watchlist específica (por busca)
+  - kind: collect_watchlist
+    views: ["BUY_LIST", "SELL_LIST"]
+    # opção A: inline
+    items: ["Ferro Bruto", "Barra de Aço"]
+    # opção B: ou use um CSV com coluna item_name
+    # watchlist_csv: "data/watchlist.csv"
+
+  # 2) Varrer uma categoria (requer ação de navegação no actions.yaml)
+  - kind: collect_category
+    action_name: open_category_Ores     # você define essa ação no actions.yaml
+    category: "Ores"
+    subcategory: null
+    limit_items: 60
+    views: ["BUY_LIST"]
