@@ -5,3 +5,17 @@ __pycache__/
 data/*.db
 data/*.sqlite
 *.json
+# --- SQLite (genéricos) ---
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite3-journal
+
+# --- Pasta de dados do projeto (mantém exemplos) ---
+data/**
+!data/.gitkeep
+!data/watchlist.csv.example
