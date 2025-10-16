@@ -7,6 +7,8 @@ import typer
 
 from src.capture.scroll import focus_and_scroll_one_page
 from src.exec.nav import open_item_by_search
+from src.exec.runner import ActionRunner
+from src.exec.watchdog import assert_window_alive
 from src.ocr.extract import scan_once
 from src.storage.db import (
     end_run,
@@ -21,6 +23,7 @@ app = typer.Typer(add_completion=False)
 BASE = Path(__file__).resolve().parents[1]
 CFG_OCR = BASE / "config" / "ocr.yaml"
 CFG_UI = BASE / "config" / "ui_profiles.yaml"
+CFG_ACTIONS = BASE / "config" / "actions.yaml"
 
 
 def _load_watchlist(path: Path) -> List[str]:
@@ -148,6 +151,9 @@ def scan_watchlist(
     watchlist_csv: str = typer.Option(
         "data/watchlist.csv", help="CSV com coluna item_name"
     ),
+    views: str = typer.Option(
+        "BUY_LIST,SELL_LIST", help="Quais listas abrir por item (sep. por vírgula)"
+    ),
 ):
     """
     Para cada item na watchlist:
@@ -160,27 +166,74 @@ def scan_watchlist(
     import csv
 
     con = ensure_db()
-    run_id = new_run(con, mode="scan", notes=f"{source_view}:watchlist")
+    run_id = new_run(con, mode="scan", notes=f"watchlist:{views}")
+    runner = ActionRunner(str(CFG_UI), str(CFG_ACTIONS), str(CFG_OCR))
     try:
         with open(watchlist_csv, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 item = row["item_name"].strip()
-                insert_action(con, run_id, "search_type", {"item": item})
-                open_item_by_search(str(CFG_UI), item)
-
-                rows = scan_once(
-                    source_view,
-                    str(CFG_OCR),
-                    str(CFG_UI),
-                    page_index=0,
-                    scroll_pos=0.0,
-                )
-                for r in rows:
-                    insert_snapshot(con, run_id, r)
+                assert_window_alive()
+                insert_action(con, run_id, "open_item:start", {"item": item})
+                ok = runner.run("open_item", {"item_name": item})
                 insert_action(
-                    con, run_id, "scan_item", {"item": item, "rows": len(rows)}
+                    con,
+                    run_id,
+                    "open_item:end",
+                    {"item": item},
+                    success=1 if ok else 0,
                 )
+                if not ok:
+                    continue
+
+                views_list = [v.strip().upper() for v in views.split(",") if v.strip()]
+                for v in views_list:
+                    if v == "BUY_LIST":
+                        insert_action(
+                            con, run_id, "open_buy_orders:start", {"item": item}
+                        )
+                        ok = runner.run("open_buy_orders", {"item_name": item})
+                        insert_action(
+                            con,
+                            run_id,
+                            "open_buy_orders:end",
+                            {"item": item},
+                            success=1 if ok else 0,
+                        )
+                        if not ok:
+                            continue
+                    elif v == "SELL_LIST":
+                        insert_action(
+                            con, run_id, "open_sell_orders:start", {"item": item}
+                        )
+                        ok = runner.run("open_sell_orders", {"item_name": item})
+                        insert_action(
+                            con,
+                            run_id,
+                            "open_sell_orders:end",
+                            {"item": item},
+                            success=1 if ok else 0,
+                        )
+                        if not ok:
+                            continue
+                    else:
+                        continue
+
+                    rows = scan_once(
+                        v,
+                        str(CFG_OCR),
+                        str(CFG_UI),
+                        page_index=0,
+                        scroll_pos=0.0,
+                    )
+                    for r in rows:
+                        insert_snapshot(con, run_id, r)
+                    insert_action(
+                        con,
+                        run_id,
+                        "scan_page",
+                        {"item": item, "view": v, "rows": len(rows)},
+                    )
     finally:
         end_run(con, run_id)
 
