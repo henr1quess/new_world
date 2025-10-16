@@ -1,8 +1,49 @@
 from pathlib import Path
 import sqlite3
+import subprocess
+import sys
 
 import pandas as pd
 import streamlit as st
+
+with st.sidebar:
+    st.header("⚙️ Controles")
+    source = st.selectbox("Lista p/ Scan", ["BUY_LIST", "SELL_LIST"])
+    pages = st.number_input("Páginas", 1, 50, 3)
+    if st.button("Iniciar Scan (sem digitar)"):
+        subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "src.main",
+                "scan",
+                "--source-view",
+                source,
+                "--pages",
+                str(pages),
+            ]
+        )
+
+    st.divider()
+    wl = st.text_input("Watchlist CSV", "data/watchlist.csv")
+    views = st.multiselect(
+        "Views", ["BUY_LIST", "SELL_LIST"], default=["BUY_LIST", "SELL_LIST"]
+    )
+    if st.button("Scan Watchlist"):
+        subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "src.main",
+                "scan-watchlist",
+                "--source-view",
+                "BUY_LIST",
+                "--watchlist-csv",
+                wl,
+                "--views",
+                ",".join(views),
+            ]
+        )
 
 DB = Path(__file__).resolve().parent / "data" / "market.db"
 
