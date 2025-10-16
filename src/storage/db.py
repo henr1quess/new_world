@@ -136,3 +136,91 @@ def _migrate_items_catalog_to_items(con):
 
     con.execute("DROP TABLE items_catalog")
     con.commit()
+
+# ---------- ORDERS ----------
+def create_order(con, *, item_name: str, side: str, price: float, qty_requested: int,
+                 run_id: int | None = None, settlement: str | None = None,
+                 notes: str | None = None, status: str = "PENDING") -> int:
+    cur = con.cursor()
+    cur.execute("""
+        INSERT INTO my_orders(run_id,item_name,side,price,qty_requested,status,settlement,notes)
+        VALUES (?,?,?,?,?,?,?,?)
+    """, (run_id, item_name, side, price, qty_requested, status, settlement, notes))
+    con.commit()
+    oid = cur.lastrowid
+    append_order_event(con, oid, "PLACED", status_after=status, details=json.dumps({"price":price,"qty":qty_requested}))
+    return oid
+
+
+def set_order_active(con, my_order_id: int) -> None:
+    con.execute("UPDATE my_orders SET status='ACTIVE', updated_at=datetime('now') WHERE my_order_id=?", (my_order_id,))
+    append_order_event(con, my_order_id, "SEEN", status_after="ACTIVE")
+    con.commit()
+
+
+def update_order_fill(con, my_order_id: int, qty_delta: int) -> None:
+    con.execute("""
+        UPDATE my_orders SET
+          qty_filled = qty_filled + ?,
+          status = CASE WHEN qty_filled + ? >= qty_requested THEN 'FILLED'
+                        WHEN qty_filled + ? > 0 THEN 'PARTIAL'
+                        ELSE status END,
+          updated_at = datetime('now')
+        WHERE my_order_id = ?
+    """, (qty_delta, qty_delta, qty_delta, my_order_id))
+    cur = con.execute("SELECT status FROM my_orders WHERE my_order_id=?", (my_order_id,))
+    status_after = cur.fetchone()[0]
+    append_order_event(con, my_order_id, "FILL", qty_delta=qty_delta, status_after=status_after)
+    con.commit()
+
+
+def set_order_closed(con, my_order_id: int, status: str, details: dict | None = None) -> None:
+    con.execute("UPDATE my_orders SET status=?, updated_at=datetime('now') WHERE my_order_id=?",
+                (status, my_order_id))
+    append_order_event(con, my_order_id, "CLOSE", status_after=status,
+                       details=json.dumps(details, ensure_ascii=False) if details else None)
+    con.commit()
+
+
+def mark_order_seen_now(con, my_order_id: int) -> None:
+    con.execute("UPDATE my_orders SET last_seen_at=datetime('now'), updated_at=datetime('now') WHERE my_order_id=?",
+                (my_order_id,))
+    con.commit()
+
+
+def append_order_event(con, my_order_id: int, event: str, qty_delta: int | None = None,
+                       status_after: str | None = None, details: str | None = None) -> None:
+    con.execute("""INSERT INTO order_events (my_order_id, event, qty_delta, status_after, details)
+                   VALUES (?,?,?,?,?)""", (my_order_id, event, qty_delta, status_after, details))
+    con.commit()
+
+
+def insert_my_order_snapshot(con, row: dict) -> None:
+    con.execute("""
+        INSERT INTO my_orders_snapshots (ts, item_name, side, price, qty_remaining, settlement)
+        VALUES (datetime('now'),?,?,?,?,?)
+    """, (row["item_name"], row["side"], row["price"], row.get("qty_remaining"), row.get("settlement")))
+    con.commit()
+
+
+# ---------- INVENTORY ----------
+def upsert_inventory(con, *, item_name: str, location: str = "unknown", qty: int) -> None:
+    con.execute("""
+        INSERT INTO inventory(item_name, location, qty, updated_at)
+        VALUES (?, ?, ?, datetime('now'))
+        ON CONFLICT(item_name, location) DO UPDATE SET
+          qty = excluded.qty,
+          updated_at = datetime('now')
+    """, (item_name, location, qty))
+    con.commit()
+
+
+def bump_inventory(con, *, item_name: str, location: str = "unknown", qty_delta: int) -> None:
+    con.execute("""
+        INSERT INTO inventory(item_name, location, qty, updated_at)
+        VALUES (?, ?, ?, datetime('now'))
+        ON CONFLICT(item_name, location) DO UPDATE SET
+          qty = inventory.qty + ?,
+          updated_at = datetime('now')
+    """, (item_name, location, qty_delta, qty_delta))
+    con.commit()
