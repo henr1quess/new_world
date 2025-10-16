@@ -58,6 +58,7 @@ def get_window_rect(title_contains: str) -> Optional[Dict[str, object]]:
             "w": rect_xywh["w"],
             "h": rect_xywh["h"],
             "title": target["title"],
+            "handle": target["handle"],
         }
 
     return None
