@@ -4,8 +4,15 @@ from pathlib import Path
 import typer
 
 from src.capture.scroll import focus_and_scroll_one_page
+from src.exec.nav import open_item_by_search
 from src.ocr.extract import scan_once
-from src.storage.db import end_run, ensure_db, insert_snapshot, new_run
+from src.storage.db import (
+    end_run,
+    ensure_db,
+    insert_action,
+    insert_snapshot,
+    new_run,
+)
 
 app = typer.Typer(add_completion=False)
 
@@ -57,6 +64,49 @@ def dashboard():
     subprocess.run(
         [sys.executable, "-m", "streamlit", "run", str(BASE / "streamlit_app.py")]
     )
+
+
+@app.command()
+def scan_watchlist(
+    source_view: str = typer.Option("BUY_LIST", help="BUY_LIST ou SELL_LIST"),
+    watchlist_csv: str = typer.Option(
+        "data/watchlist.csv", help="CSV com coluna item_name"
+    ),
+):
+    """
+    Para cada item na watchlist:
+      - digita no campo de busca do market
+      - abre o item (resultado)
+      - captura as ~12 linhas atuais do book e salva no SQLite
+      - registra ações no actions_log
+    """
+
+    import csv
+
+    con = ensure_db()
+    run_id = new_run(con, mode="scan", notes=f"{source_view}:watchlist")
+    try:
+        with open(watchlist_csv, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                item = row["item_name"].strip()
+                insert_action(con, run_id, "search_type", {"item": item})
+                open_item_by_search(str(CFG_UI), item)
+
+                rows = scan_once(
+                    source_view,
+                    str(CFG_OCR),
+                    str(CFG_UI),
+                    page_index=0,
+                    scroll_pos=0.0,
+                )
+                for r in rows:
+                    insert_snapshot(con, run_id, r)
+                insert_action(
+                    con, run_id, "scan_item", {"item": item, "rows": len(rows)}
+                )
+    finally:
+        end_run(con, run_id)
 
 
 if __name__ == "__main__":
