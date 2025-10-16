@@ -265,7 +265,7 @@ Acesse o link local (normalmente `http://localhost:8501`) para filtrar e **Expor
   ```bash
   python -m src.main jobs --jobs-file jobs.yaml
   ```
-- O scheduler garante que a janela monitorada está ativa antes de iniciar cada job.
+- O scheduler garante que a janela monitorada está ativa antes de iniciar cada job (aborta se a janela não estiver disponível).
 
 ---
 
