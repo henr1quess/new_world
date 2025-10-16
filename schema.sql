@@ -39,3 +39,17 @@ CREATE TABLE IF NOT EXISTS actions_log (
 
 CREATE INDEX IF NOT EXISTS idx_actions_ts ON actions_log(ts);
 CREATE INDEX IF NOT EXISTS idx_actions_run ON actions_log(run_id);
+
+-- Catálogo de itens (para categorias, tags e organização de coletas)
+CREATE TABLE IF NOT EXISTS items (
+  item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  category TEXT,
+  subcategory TEXT,
+  tags TEXT,              -- JSON: ["hot","flip_candidate"]
+  source TEXT,            -- 'csv' | 'ocr' | 'manual' | 'wiki'
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_items_cat ON items(category, subcategory);
