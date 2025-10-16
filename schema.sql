@@ -28,11 +28,14 @@ CREATE INDEX IF NOT EXISTS idx_prices_source ON prices_snapshots(source_view);
 
 CREATE TABLE IF NOT EXISTS actions_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  run_id INTEGER NOT NULL,
-  created_at TEXT NOT NULL,
-  action_type TEXT NOT NULL,
-  payload_json TEXT,
+  ts TEXT NOT NULL,
+  run_id INTEGER,
+  action TEXT NOT NULL,
+  details TEXT,
+  success INTEGER DEFAULT 1,
+  notes TEXT,
   FOREIGN KEY (run_id) REFERENCES runs(run_id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_actions_ts ON actions_log(ts);
 CREATE INDEX IF NOT EXISTS idx_actions_run ON actions_log(run_id);
