@@ -20,7 +20,7 @@ FROM prices_snapshots
 ORDER BY datetime(timestamp) DESC
 """
 df = pd.read_sql(q, con)
-tab1, tab2 = st.tabs(["📈 Snapshots", "🧾 Ações (log)"])
+tab1, tab2, tab3 = st.tabs(["📈 Snapshots", "🧾 Ações (log)", "📚 Items"])
 
 with tab1:
     left, right = st.columns([2, 1])
@@ -60,3 +60,26 @@ with tab2:
         )
     except Exception:
         st.info("Ainda não há `actions_log` (rode um scan/watchlist depois do update do schema).")
+
+with tab3:
+    try:
+        qi = "SELECT name, category, subcategory, tags, source, created_at, updated_at FROM items ORDER BY name"
+        df_i = pd.read_sql(qi, con)
+        c1, c2 = st.columns(2)
+        with c1:
+            cat = st.text_input("Filtrar categoria contém", "")
+        with c2:
+            tag = st.text_input("Filtrar tag contém", "")
+        if cat:
+            df_i = df_i[df_i["category"].fillna("").str.contains(cat, case=False)]
+        if tag:
+            df_i = df_i[df_i["tags"].fillna("").str.contains(tag, case=False)]
+        st.dataframe(df_i, use_container_width=True)
+        st.download_button(
+            "Exportar catálogo CSV",
+            df_i.to_csv(index=False).encode("utf-8"),
+            "items_catalog.csv",
+            "text/csv",
+        )
+    except Exception:
+        st.info("Ainda não há tabela `items` (importe via CSV ou varra uma categoria).")
