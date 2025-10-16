@@ -11,3 +11,4 @@ sqlmodel==0.0.22
 python-dotenv==1.0.1
 structlog==24.1.0
 streamlit==1.38.0
+pandas==2.2.2

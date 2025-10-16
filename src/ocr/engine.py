@@ -1,51 +1,56 @@
-"""OCR engine abstraction built on top of pytesseract."""
+import re
 
-from __future__ import annotations
-
-from pathlib import Path
-from typing import Dict, Tuple
-
-import yaml
-import pytesseract
-from pytesseract import Output
+import numpy as np
 from PIL import Image
+import yaml
+
+try:
+    from paddleocr import PaddleOCR
+except Exception:  # pragma: no cover - optional dependency
+    PaddleOCR = None
+
+import pytesseract
+
+PRICE_RE = None
+MIN_CONF = 0.65
 
 
-def load_ocr_config(path: str) -> Dict:
-    with open(path, "r", encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+def load_ocr_config(path_ocr_yaml: str):
+    """Load OCR configuration file and set global parameters."""
+    global PRICE_RE, MIN_CONF
+    with open(path_ocr_yaml, "r", encoding="utf-8") as fh:
+        cfg = yaml.safe_load(fh)
+    PRICE_RE = re.compile(cfg["postprocess"]["price_regex"])
+    MIN_CONF = float(cfg["postprocess"]["min_confidence"])
+    tess_cfg = cfg.get("tesseract", {})
+    if tess_cfg.get("path"):
+        pytesseract.pytesseract.tesseract_cmd = tess_cfg["path"]
+    return cfg
 
 
 class OCREngine:
-    """Simple OCR helper that wraps pytesseract for text and confidence extraction."""
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.paddle = None
+        if "paddle" in cfg.get("engine_order", []) and PaddleOCR is not None:
+            self.paddle = PaddleOCR(
+                use_angle_cls=False,
+                use_gpu=False,
+                det=True,
+                rec=True,
+                lang="en",
+            )
 
-    def __init__(self, config: Dict):
-        self.config = config
-        self._tess_config = self._build_tesseract_config()
-
-    def _build_tesseract_config(self) -> str:
-        tess_cfg = self.config.get("tesseract", {})
-
-        tesseract_path = tess_cfg.get("path")
-        if tesseract_path:
-            pytesseract.pytesseract.tesseract_cmd = str(Path(tesseract_path))
-
-        options = []
-        if "psm" in tess_cfg:
-            options.append(f"--psm {tess_cfg['psm']}")
-        if "oem" in tess_cfg:
-            options.append(f"--oem {tess_cfg['oem']}")
-        if "whitelist" in tess_cfg:
-            whitelist = tess_cfg["whitelist"]
-            options.append(f"-c tessedit_char_whitelist={whitelist}")
-
-        return " ".join(options)
-
-    def text_and_conf(self, image: Image.Image) -> Tuple[str, float]:
-        data = pytesseract.image_to_data(image, output_type=Output.DICT, config=self._tess_config)
-        words = [w for w in data.get("text", []) if w and w.strip()]
-        confidences = [float(c) for c in data.get("conf", []) if c not in ("-1", "-1.0")]
-
-        text = " ".join(words)
-        confidence = sum(confidences) / len(confidences) if confidences else 0.0
-        return text, confidence / 100.0
+    def text_and_conf(self, img: Image.Image) -> tuple[str, float]:
+        # 1) Paddle
+        if self.paddle:
+            res = self.paddle.ocr(np.array(img), cls=False)
+            if res and res[0]:
+                # pega a linha com melhor confiança média
+                best = max(res[0], key=lambda r: float(r[1][1]))
+                return best[1][0], float(best[1][1])
+        # 2) Tesseract fallback
+        txt = pytesseract.image_to_string(
+            img, config=f'--psm {self.cfg["tesseract"]["psm"]}'
+        )
+        return txt.strip(), 0.60
