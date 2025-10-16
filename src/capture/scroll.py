@@ -9,7 +9,7 @@ import win32con
 import win32gui
 
 from .calibrate import relative_rect
-from .window import get_screen_resolution, get_window_rect, human_pause
+from .window import get_window_rect, human_pause
 
 
 BASE = Path(__file__).resolve().parents[2]
@@ -50,20 +50,20 @@ def _focus_window() -> Dict[str, Any] | None:
 
 
 def focus_and_scroll_one_page(ui_cfg_path: str) -> None:
-    """Bring the target window to the foreground and scroll the list once."""
+    """Bring the target window to the foreground and scroll the list once (coords relativas à JANELA)."""
 
     profile = _load_ui_profile(ui_cfg_path)
     scroll_cfg: Dict[str, Any] = profile.get("scroll", {})
 
-    if _focus_window() is None:
+    win = _focus_window()
+    if win is None:
         return
 
-    screen = get_screen_resolution()
-    list_zone = relative_rect(profile["anchors"]["list_zone"], screen)
-    lx, ly, lw, lh = list_zone
+    base = (win["w"], win["h"])
+    lx, ly, lw, lh = relative_rect(profile["anchors"]["list_zone"], base)
 
-    cx = lx + lw // 2
-    cy = ly + min(lh - 1, int(0.5 * lh))
+    cx = win["x"] + lx + lw // 2
+    cy = win["y"] + ly + min(lh - 1, int(0.5 * lh))
 
     win32api.SetCursorPos((cx, cy))
     human_pause(scroll_cfg.get("pause_before_scroll_ms", 80))
