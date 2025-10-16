@@ -126,7 +126,10 @@ def write_markdown(root: Path,
 
         for p in files:
             rel = norm_relpath(root, p)
-            size = p.stat().st_size
+            try:
+                size = p.stat().st_size
+            except Exception:
+                size = 0
             lang = ext_to_lang(p.suffix, p.name)
             w.write(f"### {rel}\n\n> size: {size} bytes\n\n")
             if not is_textual(p):
