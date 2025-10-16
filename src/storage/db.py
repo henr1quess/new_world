@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import sqlite3
 
@@ -48,5 +49,16 @@ def insert_snapshot(con, run_id, row):
             row.get("confidence"),
             row.get("hash_row"),
         ),
+    )
+    con.commit()
+
+
+def insert_action(con, run_id, action_type, payload=None):
+    con.execute(
+        """
+        INSERT INTO actions_log (run_id, created_at, action_type, payload_json)
+        VALUES (?, datetime('now'), ?, ?)
+        """,
+        (run_id, action_type, json.dumps(payload or {})),
     )
     con.commit()
