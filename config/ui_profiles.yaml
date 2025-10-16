@@ -7,6 +7,8 @@ profiles:
       results_zone: {x: 0.25, y: 0.17, w: 0.50, h: 0.30}   # lista de resultados após digitar
       buy_tab:      {x: 0.12, y: 0.18, w: 0.08, h: 0.05}   # aba "Buy" (ajuste!)
       sell_tab:     {x: 0.21, y: 0.18, w: 0.08, h: 0.05}   # aba "Sell" (ajuste!)
+      category_menu:{x: 0.08, y: 0.22, w: 0.10, h: 0.60}   # AJUSTE: região do menu lateral
+      category_ores:{x: 0.10, y: 0.30, w: 0.18, h: 0.04}   # AJUSTE: linha/botão "Ores" dentro do menu
       list_zone:    {x: 0.10, y: 0.22, w: 0.80, h: 0.66}
       footer_zone:  {x: 0.10, y: 0.90, w: 0.80, h: 0.06}
     columns:

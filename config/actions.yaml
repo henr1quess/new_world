@@ -22,3 +22,12 @@ actions:
       - {type: click, anchor: sell_tab}
       - {type: wait_header_contains, text: "sell", timeout_ms: 2000}  # confirma "Sell"
       - {type: sleep_ms, ms: 200}
+
+  # Exemplo: abrir a categoria "Ores" no menu lateral (AJUSTE as âncoras no ui_profiles.yaml)
+  open_category_Ores:
+    steps:
+      - {type: click, anchor: category_menu}
+      - {type: sleep_ms, ms: 160}
+      - {type: click, anchor: category_ores}
+      - {type: sleep_ms, ms: 180}
+      - {type: wait_header_contains, text: "ores", timeout_ms: 2500}
