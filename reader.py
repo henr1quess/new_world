@@ -178,7 +178,7 @@ def write_markdown(root: Path,
                     current_run = 0
             fence_len = max(3, longest_run + 1)
             fence_seq = "`" * fence_len
-            lang_suffix = f" {fence}" if fence else ""
+            lang_suffix = f" {fence}" if (fence and fence != "markdown") else ""
             w.write(f"{fence_seq}{lang_suffix}\n{text}\n{fence_seq}\n\n")
             if clipped:
                 w.write(f"_content clipped to first {max_bytes} bytes_\n\n")
@@ -213,6 +213,8 @@ def main():
         sys.exit(1)
 
     files = collect_files(root, include_exts, include_names, exclude_dirs, exclude_files)
+    out_resolved = out_path.resolve()
+    files = [f for f in files if f.resolve() != out_resolved]
     if not files:
         print("Nenhum arquivo encontrado com os filtros atuais.", file=sys.stderr)
 
