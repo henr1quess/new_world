@@ -98,15 +98,17 @@ def collect_files(root: Path,
                   always_include_names: set[str],
                   exclude_dirs: set[str],
                   exclude_files: set[str]) -> list[Path]:
+    exclude_dirs_l = {d.lower() for d in exclude_dirs}
+    exclude_files_l = {f.lower() for f in exclude_files}
     files: list[Path] = []
     for p in root.rglob("*"):
         if not p.is_file():
             continue
         # pular diretórios excluídos
-        if should_skip_dir([part for part in p.relative_to(root).parts[:-1]], exclude_dirs):
+        if should_skip_dir([part.lower() for part in p.relative_to(root).parts[:-1]], exclude_dirs_l):
             continue
         # pular arquivos excluídos por nome
-        if p.name in exclude_files:
+        if p.name.lower() in exclude_files_l:
             continue
         # incluir por nome (sempre)
         if p.name in always_include_names:
@@ -116,9 +118,8 @@ def collect_files(root: Path,
         if p.suffix.lower() in include_exts or p.name.lower() == "requirements.txt":
             files.append(p)
     # remover duplicados preservando ordem
-    seen = set()
-    unique = []
-    for f in files:
+    seen, unique = set(), []
+    for f in sorted(files, key=lambda p: p.as_posix().lower()):
         if f not in seen:
             unique.append(f); seen.add(f)
     return unique
