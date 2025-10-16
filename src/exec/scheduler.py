@@ -125,6 +125,9 @@ class JobScheduler:
 
     # ---------- Execução ----------
     def run_once(self):
+        # Garanta que a janela está ativa antes de abrir o banco ou registrar runs.
+        assert_window_alive()
+
         self.con = ensure_db()
         run_id = new_run(self.con, mode="jobs", notes=self.jobs_file.name)
         try:
