@@ -8,6 +8,7 @@ import typer
 from src.capture.scroll import focus_and_scroll_one_page
 from src.exec.nav import open_item_by_search
 from src.exec.runner import ActionRunner
+from src.exec.scheduler import JobScheduler
 from src.exec.watchdog import assert_window_alive
 from src.ocr.extract import scan_once
 from src.storage.db import (
@@ -134,17 +135,6 @@ def _scan_watchlist_legacy(
 
 
 @app.command()
-def dashboard():
-    """Abre o dashboard Streamlit (Nível 0)."""
-    import subprocess
-    import sys
-
-    subprocess.run(
-        [sys.executable, "-m", "streamlit", "run", str(BASE / "streamlit_app.py")]
-    )
-
-
-@app.command()
 def scan_watchlist(
     source_view: str = typer.Option("BUY_LIST", help="BUY_LIST ou SELL_LIST"),
     watchlist_csv: str = typer.Option(
@@ -235,6 +225,33 @@ def scan_watchlist(
                     )
     finally:
         end_run(con, run_id)
+
+
+@app.command()
+def dashboard():
+    """Abre o dashboard Streamlit (Nível 0)."""
+    import subprocess
+    import sys
+
+    subprocess.run(
+        [sys.executable, "-m", "streamlit", "run", str(BASE / "streamlit_app.py")]
+    )
+
+
+@app.command()
+def run_jobs(file: str = "config/jobs.yaml"):
+    """Executa os jobs definidos no YAML uma vez (em sequência)."""
+
+    sched = JobScheduler(str(CFG_UI), str(CFG_ACTIONS), str(CFG_OCR), file)
+    sched.run_once()
+
+
+@app.command()
+def watch_jobs(file: str = "config/jobs.yaml", interval_s: float = 1.0):
+    """Observa o arquivo YAML de jobs e reexecuta sempre que for alterado."""
+
+    sched = JobScheduler(str(CFG_UI), str(CFG_ACTIONS), str(CFG_OCR), file)
+    sched.watch_forever(interval_s=interval_s)
 
 
 if __name__ == "__main__":
