@@ -119,7 +119,8 @@ def _rect_center(rect: tuple[int, int, int, int]) -> tuple[int, int]:
 
 def _confirm_first_result(
     first_result_cfg: Dict[str, Any],
-    screen: tuple[int, int],
+    base: tuple[int, int],
+    origin: tuple[int, int],
     expected_name: str,
     *,
     min_conf: float,
@@ -129,8 +130,9 @@ def _confirm_first_result(
         logger.debug("OCR indisponível para confirmação de resultados")
         return True
 
-    rx, ry, rw, rh = relative_rect(first_result_cfg, screen)
-    snapshot = capture_rect(rx, ry, rw, rh)
+    rx, ry, rw, rh = relative_rect(first_result_cfg, base)
+    ox, oy = origin
+    snapshot = capture_rect(ox + rx, oy + ry, rw, rh)
     text, conf = engine.text_and_conf(snapshot)
     norm_text = " ".join(text.split()).lower()
     expected_head = expected_name.strip().split()
@@ -169,13 +171,21 @@ def open_item_by_search(ui_cfg_path: str, item_name: str) -> bool:
         logger.error("Anchor 'search.input' não configurada no profile da UI")
         return False
 
-    _focus_window()
+    win = _focus_window()
     screen = get_screen_resolution()
-    bounds = (0, 0, screen[0] - 1, screen[1] - 1)
+    if win:
+        base = (win["w"], win["h"])
+        origin = (win["x"], win["y"])
+        bounds = (origin[0], origin[1], origin[0] + win["w"] - 1, origin[1] + win["h"] - 1)
+    else:
+        base = (screen[0], screen[1])
+        origin = (0, 0)
+        bounds = (0, 0, screen[0] - 1, screen[1] - 1)
     jitter_px = int(search_cfg.get("click_jitter_px", 4))
 
-    input_rect = relative_rect(search_box, screen)
-    cx, cy = _rect_center(input_rect)
+    input_rect = relative_rect(search_box, base)
+    rcx, rcy = _rect_center(input_rect)
+    cx, cy = origin[0] + rcx, origin[1] + rcy
 
     _click_at(
         cx,
@@ -201,14 +211,15 @@ def open_item_by_search(ui_cfg_path: str, item_name: str) -> bool:
     confirm_min_conf = float(search_cfg.get("confirm_min_conf", 0.55))
 
     if first_result:
-        result_rect = relative_rect(first_result, screen)
-        rx, ry = _rect_center(result_rect)
+        result_rect = relative_rect(first_result, base)
+        rrx, rry = _rect_center(result_rect)
+        rx, ry = origin[0] + rrx, origin[1] + rry
         pause_ms = search_cfg.get("pause_before_result_click_ms", 180)
         _click_at(rx, ry, pause_ms=pause_ms, jitter_px=jitter_px, bounds=bounds)
 
         if search_cfg.get("confirm_first_result", True):
             human_pause(pause_before_confirm_ms)
-            confirmed = _confirm_first_result(first_result, screen, item_name, min_conf=confirm_min_conf)
+            confirmed = _confirm_first_result(first_result, base, origin, item_name, min_conf=confirm_min_conf)
 
     human_pause(search_cfg.get("pause_after_action_ms", 200))
     logger.debug("Item '%s' pesquisado via busca", item_name)
