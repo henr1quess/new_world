@@ -74,6 +74,10 @@ class ActionRunner:
         txt, _ = self.engine.text_and_conf(img)
         return " ".join((txt or "").split()).lower()
 
+    # Público: útil para schedulers/rotinas
+    def read_first_row_name(self) -> str:
+        return self._ocr_first_row_name()
+
     # --- primitives ---
     def click(self, anchor_name: str):
         ax, ay = self._anchor_center_abs(anchor_name)
