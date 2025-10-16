@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import sqlite3
+from typing import Any
 
 SCHEMA_PATH = Path(__file__).resolve().parents[2] / "schema.sql"
 DB_PATH = Path(__file__).resolve().parents[2] / "data" / "market.db"
@@ -135,4 +136,198 @@ def _migrate_items_catalog_to_items(con):
     )
 
     con.execute("DROP TABLE items_catalog")
+    con.commit()
+
+
+# ---------- Orders ----------
+def _serialize_details(details: Any) -> str | None:
+    if details is None:
+        return None
+    if isinstance(details, (dict, list)):
+        return json.dumps(details, ensure_ascii=False)
+    return str(details)
+
+
+def _extract_reason(details: Any) -> str | None:
+    if isinstance(details, dict):
+        reason = details.get("reason")
+        if reason is not None:
+            return str(reason)
+    return None
+
+
+def _insert_order_event(
+    con: sqlite3.Connection,
+    order_id: int,
+    event_type: str,
+    details: Any = None,
+) -> None:
+    payload = _serialize_details(details)
+    con.execute(
+        """
+        INSERT INTO order_events (order_id, event_type, details)
+        VALUES (?, ?, ?)
+        """,
+        (order_id, event_type, payload),
+    )
+
+
+def create_order(
+    con: sqlite3.Connection,
+    *,
+    item_name: str,
+    side: str,
+    price: float,
+    qty_requested: int,
+    run_id: int | None = None,
+    settlement: str | None = None,
+) -> int:
+    side_norm = side.upper()
+    if side_norm not in {"BUY", "SELL"}:
+        raise ValueError(f"Invalid order side '{side}'. Expected 'BUY' or 'SELL'.")
+
+    qty_requested_int = int(qty_requested)
+    if qty_requested_int < 0:
+        raise ValueError("qty_requested must be non-negative")
+
+    cur = con.execute(
+        """
+        INSERT INTO orders (item_name, side, price, qty_requested, run_id, settlement)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (item_name, side_norm, float(price), qty_requested_int, run_id, settlement),
+    )
+    order_id = cur.lastrowid
+
+    _insert_order_event(
+        con,
+        order_id,
+        "CREATED",
+        {
+            "item_name": item_name,
+            "side": side_norm,
+            "price": float(price),
+            "qty_requested": qty_requested_int,
+            "run_id": run_id,
+            "settlement": settlement,
+        },
+    )
+    con.commit()
+    return order_id
+
+
+def set_order_active(
+    con: sqlite3.Connection,
+    order_id: int,
+    details: Any = None,
+) -> None:
+    payload = _serialize_details(details)
+    cur = con.execute(
+        """
+        UPDATE orders
+        SET status='ACTIVE',
+            status_reason=NULL,
+            status_payload=?,
+            status_updated_at=datetime('now'),
+            last_seen_at=datetime('now'),
+            closed_at=NULL
+        WHERE order_id=?
+        """,
+        (payload, order_id),
+    )
+    if cur.rowcount == 0:
+        raise ValueError(f"Order {order_id} not found")
+    _insert_order_event(con, order_id, "ACTIVE", details)
+    con.commit()
+
+
+def set_order_closed(
+    con: sqlite3.Connection,
+    order_id: int,
+    status: str,
+    details: Any = None,
+) -> None:
+    status_upper = status.upper()
+    if not status_upper:
+        raise ValueError("status must be a non-empty string")
+
+    payload = _serialize_details(details)
+    reason = _extract_reason(details)
+    cur = con.execute(
+        """
+        UPDATE orders
+        SET status=?,
+            status_reason=?,
+            status_payload=?,
+            status_updated_at=datetime('now'),
+            last_seen_at=datetime('now'),
+            closed_at=COALESCE(closed_at, datetime('now'))
+        WHERE order_id=?
+        """,
+        (status_upper, reason, payload, order_id),
+    )
+    if cur.rowcount == 0:
+        raise ValueError(f"Order {order_id} not found")
+    _insert_order_event(con, order_id, status_upper, details)
+    con.commit()
+
+
+def update_order_fill(
+    con: sqlite3.Connection,
+    order_id: int,
+    qty_delta_filled: int,
+) -> int:
+    delta = int(qty_delta_filled)
+    if delta <= 0:
+        raise ValueError("qty_delta_filled must be positive")
+
+    cur = con.execute(
+        "SELECT qty_requested, qty_filled FROM orders WHERE order_id=?",
+        (order_id,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        raise ValueError(f"Order {order_id} not found")
+
+    qty_requested, qty_filled = row
+    new_qty_filled = qty_filled + delta
+    if qty_requested is not None and new_qty_filled > qty_requested:
+        new_qty_filled = qty_requested
+
+    applied_delta = new_qty_filled - qty_filled
+    if applied_delta <= 0:
+        con.execute(
+            "UPDATE orders SET last_seen_at=datetime('now') WHERE order_id=?",
+            (order_id,),
+        )
+        con.commit()
+        return qty_filled
+
+    con.execute(
+        """
+        UPDATE orders
+        SET qty_filled=?,
+            status_updated_at=datetime('now'),
+            last_seen_at=datetime('now')
+        WHERE order_id=?
+        """,
+        (new_qty_filled, order_id),
+    )
+    _insert_order_event(
+        con,
+        order_id,
+        "FILL",
+        {"qty_delta": applied_delta, "qty_filled": new_qty_filled},
+    )
+    con.commit()
+    return new_qty_filled
+
+
+def mark_order_seen_now(con: sqlite3.Connection, order_id: int) -> None:
+    cur = con.execute(
+        "UPDATE orders SET last_seen_at=datetime('now') WHERE order_id=?",
+        (order_id,),
+    )
+    if cur.rowcount == 0:
+        raise ValueError(f"Order {order_id} not found")
     con.commit()

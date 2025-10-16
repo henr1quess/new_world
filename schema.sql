@@ -54,3 +54,37 @@ CREATE TABLE IF NOT EXISTS items (
 );
 
 CREATE INDEX IF NOT EXISTS idx_items_cat ON items(category, subcategory);
+
+CREATE TABLE IF NOT EXISTS orders (
+  order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  closed_at TEXT,
+  last_seen_at TEXT,
+  item_name TEXT NOT NULL,
+  side TEXT NOT NULL CHECK (side IN ('BUY','SELL')),
+  price REAL NOT NULL,
+  qty_requested INTEGER NOT NULL CHECK (qty_requested >= 0),
+  qty_filled INTEGER NOT NULL DEFAULT 0 CHECK (qty_filled >= 0),
+  status TEXT NOT NULL DEFAULT 'CREATED',
+  status_reason TEXT,
+  status_payload TEXT,
+  status_updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  run_id INTEGER,
+  settlement TEXT,
+  FOREIGN KEY (run_id) REFERENCES runs(run_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_run ON orders(run_id);
+CREATE INDEX IF NOT EXISTS idx_orders_item ON orders(item_name);
+
+CREATE TABLE IF NOT EXISTS order_events (
+  event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id INTEGER NOT NULL,
+  ts TEXT NOT NULL DEFAULT (datetime('now')),
+  event_type TEXT NOT NULL,
+  details TEXT,
+  FOREIGN KEY (order_id) REFERENCES orders(order_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_events_order ON order_events(order_id);
