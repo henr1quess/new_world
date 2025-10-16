@@ -2,8 +2,15 @@ import ctypes
 import time
 from typing import Dict, Optional, Tuple
 
-from PIL import ImageGrab
-import win32gui
+try:
+    from PIL import ImageGrab
+except ModuleNotFoundError:  # pragma: no cover - optional dependency during tests
+    ImageGrab = None  # type: ignore[assignment]
+
+try:
+    import win32gui
+except ModuleNotFoundError:  # pragma: no cover - optional dependency during tests
+    win32gui = None  # type: ignore[assignment]
 
 
 def get_screen_resolution() -> Tuple[int, int]:
@@ -16,6 +23,8 @@ def get_screen_resolution() -> Tuple[int, int]:
 def capture_rect(x: int, y: int, w: int, h: int):
     """Capture a rectangular region of the screen specified in absolute pixels."""
 
+    if ImageGrab is None:
+        raise RuntimeError("Pillow is required for screen capture operations")
     bbox = (x, y, x + w, y + h)
     return ImageGrab.grab(bbox=bbox)
 
@@ -36,6 +45,8 @@ def _rect_to_xywh(rect: Tuple[int, int, int, int]) -> Dict[str, int]:
 def get_window_rect(title_contains: str) -> Optional[Dict[str, object]]:
     """Return the bounding box for the first visible window whose title contains the given text."""
 
+    if win32gui is None:
+        raise RuntimeError("pywin32 is required to enumerate windows")
     target = {"handle": None, "title": None, "rect": None}
 
     def enum_handler(hwnd, ctx):

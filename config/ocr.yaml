@@ -5,5 +5,5 @@ tesseract:
   oem: 3
   whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-% "
 postprocess:
-  price_regex: "(\\d+(?:[\\.,]\\d{1,2})?)"
+  price_regex: "(\\d+(?:[\\.,]\\d{3})*(?:[\\.,]\\d{1,2})?)"
   min_confidence: 0.65
