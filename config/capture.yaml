@@ -1,4 +1,4 @@
-window_title_contains: "Market"     # ajuste para o título do seu jogo/janela
+window_title_contains: "New World"     # ajuste para o título do seu jogo/janela
 max_pages: 50
 retry:
   ocr_max_retries: 2
