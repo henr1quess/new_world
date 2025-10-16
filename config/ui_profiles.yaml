@@ -1,0 +1,11 @@
+profiles:
+  default:
+    anchors:
+      list_zone: [0.1, 0.2, 0.8, 0.6]
+    columns:
+      name:
+        x: 0.05
+        w: 0.5
+      price:
+        x: 0.65
+        w: 0.25
