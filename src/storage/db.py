@@ -1,5 +1,6 @@
-from pathlib import Path
+import json
 import sqlite3
+from pathlib import Path
 
 SCHEMA_PATH = Path(__file__).resolve().parents[2] / "schema.sql"
 DB_PATH = Path(__file__).resolve().parents[2] / "data" / "market.db"
@@ -48,5 +49,18 @@ def insert_snapshot(con, run_id, row):
             row.get("confidence"),
             row.get("hash_row"),
         ),
+    )
+    con.commit()
+
+
+def insert_action(con, run_id, action, details=None, success=1, notes=None):
+    if isinstance(details, (dict, list)):
+        details = json.dumps(details, ensure_ascii=False)
+    con.execute(
+        """
+        INSERT INTO actions_log (ts, run_id, action, details, success, notes)
+        VALUES (datetime('now'), ?, ?, ?, ?, ?)
+        """,
+        (run_id, action, details, success, notes),
     )
     con.commit()
