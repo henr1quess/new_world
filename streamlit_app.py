@@ -20,23 +20,43 @@ FROM prices_snapshots
 ORDER BY datetime(timestamp) DESC
 """
 df = pd.read_sql(q, con)
+tab1, tab2 = st.tabs(["📈 Snapshots", "🧾 Ações (log)"])
 
-left, right = st.columns([2, 1])
-with left:
-    item_filter = st.text_input("Filtrar por item (contém):", "")
-    view = st.selectbox("Lista", ["TODAS", "BUY_LIST", "SELL_LIST"])
-    if item_filter:
-        df = df[df["item_name"].str.contains(item_filter, case=False, na=False)]
-    if view != "TODAS":
-        df = df[df["source_view"] == view]
+with tab1:
+    left, right = st.columns([2, 1])
+    with left:
+        item_filter = st.text_input("Filtrar por item (contém):", "")
+        view = st.selectbox("Lista", ["TODAS", "BUY_LIST", "SELL_LIST"])
+        if item_filter:
+            df = df[df["item_name"].str.contains(item_filter, case=False, na=False)]
+        if view != "TODAS":
+            df = df[df["source_view"] == view]
 
-    st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True)
 
-with right:
-    st.metric("Linhas coletadas", len(df))
-    st.download_button(
-        "Exportar CSV",
-        df.to_csv(index=False).encode("utf-8"),
-        "nivel0_prices.csv",
-        "text/csv",
-    )
+    with right:
+        st.metric("Linhas coletadas", len(df))
+        st.download_button(
+            "Exportar CSV",
+            df.to_csv(index=False).encode("utf-8"),
+            "nivel0_prices.csv",
+            "text/csv",
+        )
+
+with tab2:
+    try:
+        qa = """
+        SELECT ts, run_id, action, success, notes, details
+        FROM actions_log
+        ORDER BY datetime(ts) DESC
+        """
+        df_a = pd.read_sql(qa, con)
+        st.dataframe(df_a, use_container_width=True)
+        st.download_button(
+            "Exportar Log (CSV)",
+            df_a.to_csv(index=False).encode("utf-8"),
+            "actions_log.csv",
+            "text/csv",
+        )
+    except Exception:
+        st.info("Ainda não há `actions_log` (rode um scan/watchlist depois do update do schema).")
