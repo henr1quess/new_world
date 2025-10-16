@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import lru_cache
 import hashlib
 from pathlib import Path
 from typing import Dict, List
@@ -28,6 +29,32 @@ def parse_price(text: str):
         return None
 
 
+def _load_ui_cfg(ui_cfg_path: str) -> Dict:
+    path = Path(ui_cfg_path)
+    mtime = path.stat().st_mtime_ns
+    return _load_ui_cfg_cached(path.as_posix(), mtime)
+
+
+@lru_cache(maxsize=None)
+def _load_ui_cfg_cached(ui_cfg_path: str, _mtime_ns: int) -> Dict:
+    with Path(ui_cfg_path).open("r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
+
+
+def _load_capture_cfg(capture_cfg_path: str) -> Dict:
+    path = Path(capture_cfg_path)
+    if not path.exists():
+        return {}
+    mtime = path.stat().st_mtime_ns
+    return _load_capture_cfg_cached(path.as_posix(), mtime)
+
+
+@lru_cache(maxsize=None)
+def _load_capture_cfg_cached(capture_cfg_path: str, _mtime_ns: int) -> Dict:
+    with Path(capture_cfg_path).open("r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh) or {}
+
+
 def scan_once(
     source_view: str,
     ocr_cfg_path: str,
@@ -35,17 +62,12 @@ def scan_once(
     page_index: int = 0,
     scroll_pos: float = 0.0,
 ) -> List[Dict]:
-    with open(ui_cfg_path, "r", encoding="utf-8") as fh:
-        ui = yaml.safe_load(fh)
+    ui = _load_ui_cfg(ui_cfg_path)
     prof = next(iter(ui["profiles"].values()))
     cols = prof["columns"]
 
     capture_cfg_path = Path(__file__).resolve().parents[2] / "config" / "capture.yaml"
-    if capture_cfg_path.exists():
-        with open(capture_cfg_path, "r", encoding="utf-8") as fh:
-            cap_cfg = yaml.safe_load(fh) or {}
-    else:
-        cap_cfg = {}
+    cap_cfg = _load_capture_cfg(str(capture_cfg_path))
 
     title_contains = (cap_cfg.get("window_title_contains") or "").strip()
     window_info = get_window_rect(title_contains) if title_contains else None

@@ -155,7 +155,7 @@ def scan_watchlist(
     import csv
 
     con = ensure_db()
-    run_id = new_run(con, mode="scan", notes=f"watchlist:{views}")
+    run_id = new_run(con, mode="scan_watchlist", notes=f"watchlist:{views}")
     runner = ActionRunner(str(CFG_UI), str(CFG_ACTIONS), str(CFG_OCR))
     try:
         with open(watchlist_csv, newline="", encoding="utf-8") as f:

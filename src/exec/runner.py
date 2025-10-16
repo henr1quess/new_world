@@ -34,7 +34,9 @@ class ActionRunner:
 
     # --- helpers base/window ---
     def _window_and_cap(self):
-        cap_cfg = yaml.safe_load(open(Path(self.cfg_ui_path).resolve().parents[1] / "config" / "capture.yaml", "r", encoding="utf-8"))
+        cfg_path = Path(self.cfg_ui_path).resolve().parents[1] / "config" / "capture.yaml"
+        with cfg_path.open("r", encoding="utf-8") as fh:
+            cap_cfg = yaml.safe_load(fh)
         title = (cap_cfg.get("window_title_contains") or "").strip()
         wnd = get_window_rect(title) if title else None
         if wnd:

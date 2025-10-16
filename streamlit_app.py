@@ -25,7 +25,10 @@ def _run_bg(args: list[str]) -> None:
 
 @st.cache_data(ttl=5)
 def _read_sql(query: str) -> pd.DataFrame:
-    con = sqlite3.connect(DB)
+    con = sqlite3.connect(
+        f"file:{DB.as_posix()}?mode=ro&cache=shared", uri=True, check_same_thread=False
+    )
+    con.execute("PRAGMA busy_timeout=2500")
     try:
         return pd.read_sql(query, con)
     finally:

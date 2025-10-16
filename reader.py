@@ -24,7 +24,7 @@ DEFAULT_EXCLUDE_DIRS = {
     "venv", ".venv", "env", ".env", ".idea", ".vscode",
     "node_modules", "dist", "build"
 }
-DEFAULT_EXCLUDE_FILES = {".env", ".env.local", ".env.example"}
+DEFAULT_EXCLUDE_FILES = {".env", ".env.local", ".env.example", "project_dump.md"}
 
 # Sempre incluir por nome (independente de extensão)
 DEFAULT_ALWAYS_INCLUDE_NAMES = {"schema.sql", "README.md", "requirements.txt"}

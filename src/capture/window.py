@@ -34,34 +34,51 @@ def _rect_to_xywh(rect: Tuple[int, int, int, int]) -> Dict[str, int]:
 
 
 def get_window_rect(title_contains: str) -> Optional[Dict[str, object]]:
-    """Return the bounding box for the first visible window whose title contains the given text."""
+    """Return the bounding box for a visible window whose title contains the given text.
 
-    target = {"handle": None, "title": None, "rect": None}
+    Prefer the foreground window when it matches; otherwise return the first match.
+    """
+
+    needle = (title_contains or "").lower()
+    matches: list[dict] = []
 
     def enum_handler(hwnd, ctx):
         if not win32gui.IsWindowVisible(hwnd):
             return
         title = win32gui.GetWindowText(hwnd) or ""
-        if title_contains.lower() in title.lower():
-            rect = win32gui.GetWindowRect(hwnd)
-            ctx["handle"] = hwnd
-            ctx["title"] = title
-            ctx["rect"] = rect
+        if needle and needle not in title.lower():
+            return
+        rect = win32gui.GetWindowRect(hwnd)
+        ctx.append({"handle": hwnd, "title": title, "rect": rect})
 
-    win32gui.EnumWindows(enum_handler, target)
+    win32gui.EnumWindows(enum_handler, matches)
 
-    if target["rect"]:
-        rect_xywh = _rect_to_xywh(target["rect"])
-        return {
-            "x": rect_xywh["x"],
-            "y": rect_xywh["y"],
-            "w": rect_xywh["w"],
-            "h": rect_xywh["h"],
-            "title": target["title"],
-            "handle": target["handle"],
-        }
+    if not matches:
+        return None
 
-    return None
+    foreground = win32gui.GetForegroundWindow()
+    for match in matches:
+        if match["handle"] == foreground:
+            rect_xywh = _rect_to_xywh(match["rect"])
+            return {
+                "x": rect_xywh["x"],
+                "y": rect_xywh["y"],
+                "w": rect_xywh["w"],
+                "h": rect_xywh["h"],
+                "title": match["title"],
+                "handle": match["handle"],
+            }
+
+    first = matches[0]
+    rect_xywh = _rect_to_xywh(first["rect"])
+    return {
+        "x": rect_xywh["x"],
+        "y": rect_xywh["y"],
+        "w": rect_xywh["w"],
+        "h": rect_xywh["h"],
+        "title": first["title"],
+        "handle": first["handle"],
+    }
 
 
 def capture_rect_in_window(wx: int, wy: int, x: int, y: int, w: int, h: int):
