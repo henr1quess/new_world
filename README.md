@@ -117,7 +117,7 @@ offline-market-bot/
    ```bash
    python -m src.tools.calibrate_ui
    ```
-   Ele pedirá, na ordem: `search_box`, `results_zone`, `header_row`, `list_zone`, `footer_zone` e as colunas `name`, `price`, `qty`.  
+   Ele pedirá, na ordem: `search_box`, `results_zone`, `buy_tab`, `sell_tab`, `header_row`, `list_zone`, `footer_zone` e as colunas `name`, `price`, `qty`.  
    O resultado é salvo em `config/ui_profiles.yaml` como proporções da **janela**.
 
 4. (Opcional) Teste o OCR numa área à sua escolha:

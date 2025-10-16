@@ -3,6 +3,7 @@ from pathlib import Path
 import cv2
 import yaml
 from PIL import ImageGrab
+import numpy as np
 
 from ..capture.window import get_window_rect
 from ..ocr.engine import OCREngine, load_ocr_config
@@ -20,7 +21,7 @@ def main():
         raise SystemExit("Janela não encontrada. Ajuste capture.yaml.")
     x, y, w, h = wnd["x"], wnd["y"], wnd["w"], wnd["h"]
     img = ImageGrab.grab(bbox=(x, y, x + w, y + h))
-    frame = cv2.cvtColor(cv2.cvtColor(cv2.UMat(img), cv2.COLOR_RGB2BGR), cv2.COLOR_BGR2RGB)
+    frame = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
     r = cv2.selectROI("Selecione uma área para OCR (ENTER)", frame, fromCenter=False, showCrosshair=True)
     cv2.destroyAllWindows()
     if r[2] <= 0 or r[3] <= 0:
