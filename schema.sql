@@ -54,3 +54,56 @@ CREATE TABLE IF NOT EXISTS items (
 );
 
 CREATE INDEX IF NOT EXISTS idx_items_cat ON items(category, subcategory);
+
+-- === ORDENS DO BOT ===
+CREATE TABLE IF NOT EXISTS my_orders (
+  my_order_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_id        INTEGER,                               -- run que abriu a ordem (opcional)
+  item_name     TEXT NOT NULL,
+  side          TEXT NOT NULL CHECK (side IN ('BUY','SELL')),
+  price         REAL NOT NULL,
+  qty_requested INTEGER NOT NULL,
+  qty_filled    INTEGER NOT NULL DEFAULT 0,
+  status        TEXT NOT NULL DEFAULT 'PENDING',       -- PENDING|ACTIVE|PARTIAL|FILLED|CANCELLED|FAILED|EXPIRED
+  settlement    TEXT,                                  -- cidade/local (se quiser)
+  placed_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  last_seen_at  TEXT,                                  -- última vez que “vi” a ordem no My Orders
+  expires_at    TEXT,
+  notes         TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_my_orders_active ON my_orders(status, item_name, side);
+CREATE INDEX IF NOT EXISTS idx_my_orders_last_seen ON my_orders(last_seen_at);
+
+CREATE TABLE IF NOT EXISTS order_events (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  my_order_id  INTEGER NOT NULL,
+  ts           TEXT NOT NULL DEFAULT (datetime('now')),
+  event        TEXT NOT NULL,                          -- PLACED|SEEN|FILL|CANCELLED|EXPIRED|FAILED|CLOSE
+  qty_delta    INTEGER,                                -- positivo para fill
+  status_after TEXT,                                   -- status após o evento
+  details      TEXT,
+  FOREIGN KEY (my_order_id) REFERENCES my_orders(my_order_id)
+);
+CREATE INDEX IF NOT EXISTS idx_order_events_order ON order_events(my_order_id, ts);
+
+-- Snapshots do tab "My Orders" que leremos via OCR (para conciliação)
+CREATE TABLE IF NOT EXISTS my_orders_snapshots (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts           TEXT NOT NULL,
+  item_name    TEXT NOT NULL,
+  side         TEXT NOT NULL CHECK (side IN ('BUY','SELL')),
+  price        REAL NOT NULL,
+  qty_remaining INTEGER,
+  settlement   TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_my_orders_snapshots ON my_orders_snapshots(ts, item_name, side);
+
+-- === INVENTÁRIO (por local) ===
+CREATE TABLE IF NOT EXISTS inventory (
+  item_name  TEXT NOT NULL,
+  location   TEXT NOT NULL DEFAULT 'unknown',
+  qty        INTEGER NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (item_name, location)
+);
