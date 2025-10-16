@@ -215,6 +215,10 @@ def scan_watchlist(
                         page_index=0,
                         scroll_pos=0.0,
                     )
+                    if v == "BUY_LIST":
+                        for r in rows:
+                            r["item_name"] = item
+
                     for r in rows:
                         insert_snapshot(con, run_id, r)
                     insert_action(

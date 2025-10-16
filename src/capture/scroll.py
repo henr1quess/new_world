@@ -49,21 +49,23 @@ def _focus_window() -> Dict[str, Any] | None:
     return win
 
 
-def focus_and_scroll_one_page(ui_cfg_path: str) -> None:
-    """Bring the target window to the foreground and scroll the list once (coords relativas à JANELA)."""
+def focus_and_scroll(ui_cfg_path: str, anchor_name: str = "list_zone") -> None:
+    """Bring the target window to the foreground and scroll once using the provided anchor."""
 
     profile = _load_ui_profile(ui_cfg_path)
-    scroll_cfg: Dict[str, Any] = profile.get("scroll", {})
+    scroll_cfg: Dict[str, Any] = profile.get(
+        "buy_panel_scroll" if anchor_name == "buy_panel_zone" else "scroll", {}
+    )
 
     win = _focus_window()
     if win is None:
         return
 
     base = (win["w"], win["h"])
-    lx, ly, lw, lh = relative_rect(profile["anchors"]["list_zone"], base)
+    x, y, w, h = relative_rect(profile["anchors"][anchor_name], base)
 
-    cx = win["x"] + lx + lw // 2
-    cy = win["y"] + ly + min(lh - 1, int(0.5 * lh))
+    cx = win["x"] + x + w // 2
+    cy = win["y"] + y + min(h - 1, int(0.5 * h))
 
     win32api.SetCursorPos((cx, cy))
     human_pause(scroll_cfg.get("pause_before_scroll_ms", 80))
@@ -75,3 +77,9 @@ def focus_and_scroll_one_page(ui_cfg_path: str) -> None:
 
     pause_ms = scroll_cfg.get("pause_ms", 150)
     human_pause(pause_ms)
+
+
+def focus_and_scroll_one_page(ui_cfg_path: str) -> None:
+    """Compat wrapper that scrolls the default list zone."""
+
+    focus_and_scroll(ui_cfg_path, anchor_name="list_zone")

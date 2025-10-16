@@ -64,7 +64,20 @@ def scan_once(
 ) -> List[Dict]:
     ui = _load_ui_cfg(ui_cfg_path)
     prof = next(iter(ui["profiles"].values()))
-    cols = prof["columns"]
+
+    anchors = prof.get("anchors", {})
+    if (
+        source_view == "BUY_LIST"
+        and isinstance(anchors, dict)
+        and "buy_panel_zone" in anchors
+    ):
+        ax = anchors["buy_panel_zone"]
+        cols = prof.get("buy_panel_columns", {}) or {}
+        rows_per_page = int(prof.get("buy_panel_rows", 8))
+    else:
+        ax = anchors["list_zone"]
+        cols = prof["columns"]
+        rows_per_page = int(prof.get("rows", 12))
 
     capture_cfg_path = Path(__file__).resolve().parents[2] / "config" / "capture.yaml"
     cap_cfg = _load_capture_cfg(str(capture_cfg_path))
@@ -84,36 +97,49 @@ def scan_once(
         def cap_fn(x: int, y: int, w: int, h: int):
             return capture_rect(x, y, w, h)
 
-    lx, ly, lw, lh = relative_rect(prof["anchors"]["list_zone"], base_size)
+    lx, ly, lw, lh = relative_rect(ax, base_size)
 
     engine = OCREngine(load_ocr_config(ocr_cfg_path))
 
     rows: List[Dict] = []
-    line_h = int(lh / 12)
-    for i in range(12):
+    line_h = int(lh / rows_per_page)
+    for i in range(rows_per_page):
         y0 = ly + i * line_h
-
-        name_rect = (
-            lx + int(cols["name"]["x"] * lw),
-            y0,
-            int(cols["name"]["w"] * lw),
-            line_h,
-        )
         price_rect = (
             lx + int(cols["price"]["x"] * lw),
             y0,
             int(cols["price"]["w"] * lw),
             line_h,
         )
-
-        name_txt, conf_name = engine.text_and_conf(cap_fn(*name_rect))
         price_txt, conf_price = engine.text_and_conf(cap_fn(*price_rect))
         price_val = parse_price(price_txt)
 
-        if price_val is None or min(conf_name, conf_price) < MIN_CONF:
+        name_txt, conf_name = "", 1.0
+        qty_txt, conf_qty = "", 1.0
+
+        if "name" in cols:
+            name_rect = (
+                lx + int(cols["name"]["x"] * lw),
+                y0,
+                int(cols["name"]["w"] * lw),
+                line_h,
+            )
+            name_txt, conf_name = engine.text_and_conf(cap_fn(*name_rect))
+
+        if "qty" in cols:
+            qty_rect = (
+                lx + int(cols["qty"]["x"] * lw),
+                y0,
+                int(cols["qty"]["w"] * lw),
+                line_h,
+            )
+            qty_txt, conf_qty = engine.text_and_conf(cap_fn(*qty_rect))
+
+        conf = float(min(conf_price, conf_name, conf_qty))
+        if price_val is None or conf < MIN_CONF:
             continue
 
-        item_name = " ".join(name_txt.split())
+        item_name = " ".join(name_txt.split()) if name_txt else ""
         h = hashlib.sha1(
             f"{item_name}|{price_val}|{i}|{page_index}".encode()
         ).hexdigest()
@@ -126,7 +152,7 @@ def scan_once(
                 "qty_visible": None,
                 "page_index": page_index,
                 "scroll_pos": scroll_pos,
-                "confidence": float(min(conf_name, conf_price)),
+                "confidence": conf,
                 "hash_row": h,
             }
         )
