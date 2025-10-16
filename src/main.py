@@ -81,14 +81,13 @@ def scan(
         end_run(con, run_id)
 
 
-@app.command()
-def scan_watchlist(
-    source_view: str = typer.Option("BUY_LIST", help="BUY_LIST ou SELL_LIST"),
-    watchlist_csv: str = typer.Option(..., help="arquivo CSV com uma coluna 'item_name'"),
-    pages: int = typer.Option(1, help="quantas páginas ler por item"),
-    out_json: str = typer.Option("", help="salvar também em JSON (opcional)"),
+def _scan_watchlist_legacy(
+    source_view: str = "BUY_LIST",
+    watchlist_csv: str = "",
+    pages: int = 1,
+    out_json: str = "",
 ):
-    """Varre a watchlist digitando no campo de busca antes de capturar os preços."""
+    """[LEGACY] Varre a watchlist digitando no campo de busca antes de capturar os preços."""
 
     items = _load_watchlist(Path(watchlist_csv))
 
