@@ -1,0 +1,13 @@
+# paddleocr==2.7.0.3  # desativado no Windows p/ evitar conflito com OpenCV 4.10
+pytesseract==0.3.10
+opencv-python==4.10.0.84
+numpy==1.26.4
+Pillow==10.4.0
+pywin32==306
+keyboard==0.13.5
+typer==0.12.5
+sqlalchemy==2.0.36
+sqlmodel==0.0.22
+python-dotenv==1.0.1
+structlog==24.1.0
+streamlit==1.38.0
