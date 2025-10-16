@@ -140,7 +140,10 @@ def write_markdown(root: Path,
         w.write("\n```\n\n## Files\n\n")
 
         always_include_names_lower = {name.lower() for name in always_include_names}
+        out_resolved = out_path.resolve()
         for p in files:
+            if p.resolve() == out_resolved:
+                continue
             rel = norm_relpath(root, p)
             try:
                 size = p.stat().st_size

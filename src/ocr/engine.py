@@ -50,7 +50,9 @@ class OCREngine:
                 best = max(res[0], key=lambda r: float(r[1][1]))
                 return best[1][0], float(best[1][1])
         # 2) Tesseract fallback
-        txt = pytesseract.image_to_string(
-            img, config=f'--psm {self.cfg["tesseract"]["psm"]}'
-        )
+        cfg_t = self.cfg.get("tesseract", {})
+        psm = cfg_t.get("psm", 6)
+        whitelist = cfg_t.get("whitelist")
+        extra = f' -c tessedit_char_whitelist="{whitelist}"' if whitelist else ""
+        txt = pytesseract.image_to_string(img, config=f"--psm {psm}{extra}")
         return txt.strip(), 0.60

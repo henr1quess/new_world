@@ -88,7 +88,7 @@ def scan_once(
         price_txt, conf_price = engine.text_and_conf(cap_fn(*price_rect))
         price_val = parse_price(price_txt)
 
-        if price_val is None or max(conf_name, conf_price) < MIN_CONF:
+        if price_val is None or min(conf_name, conf_price) < MIN_CONF:
             continue
 
         item_name = " ".join(name_txt.split())
