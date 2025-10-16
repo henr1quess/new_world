@@ -1,10 +1,11 @@
-from __future__ import annotations
-
-from typing import Iterable, Tuple
+from .window import get_screen_resolution
 
 
-def relative_rect(rect: Iterable[float], screen: Tuple[int, int]) -> Tuple[int, int, int, int]:
-    """Converte coordenadas relativas (0-1) para pixels absolutos."""
-    sx, sy = screen
-    rx, ry, rw, rh = rect
-    return int(rx * sx), int(ry * sy), int(rw * sx), int(rh * sy)
+def relative_rect(rel, screen):
+    sw, sh = screen
+    return (
+        int(rel["x"] * sw),
+        int(rel["y"] * sh),
+        int(rel["w"] * sw),
+        int(rel["h"] * sh),
+    )

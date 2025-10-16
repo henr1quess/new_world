@@ -1,0 +1,6 @@
+window_title_contains: "Market"     # ajuste para o título do seu jogo/janela
+max_pages: 50
+retry:
+  ocr_max_retries: 2
+  ocr_retry_delay_ms: 120
+

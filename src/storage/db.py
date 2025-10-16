@@ -1,87 +1,52 @@
-from __future__ import annotations
-
-import sqlite3
 from pathlib import Path
-from typing import Any, Dict
+import sqlite3
 
-DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-DATA_DIR.mkdir(exist_ok=True)
-DB_PATH = DATA_DIR / "market.db"
+SCHEMA_PATH = Path(__file__).resolve().parents[2] / "schema.sql"
+DB_PATH = Path(__file__).resolve().parents[2] / "data" / "market.db"
 
 
-def ensure_db() -> sqlite3.Connection:
+def ensure_db():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(DB_PATH)
-    _migrate(con)
+    with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
+        con.executescript(f.read())
+    con.commit()
     return con
 
 
-def _migrate(con: sqlite3.Connection) -> None:
+def new_run(con, mode="scan", notes=None):
     cur = con.cursor()
     cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS runs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            ended_at TEXT,
-            mode TEXT,
-            notes TEXT
-        )
-        """
+        "INSERT INTO runs (started_at, mode, notes) VALUES (datetime('now'), ?, ?)",
+        (mode, notes),
     )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS prices_snapshots (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_id INTEGER NOT NULL,
-            timestamp TEXT NOT NULL,
-            source_view TEXT,
-            item_name TEXT,
-            price REAL,
-            qty_visible INTEGER,
-            page_index INTEGER,
-            scroll_pos REAL,
-            confidence REAL,
-            hash_row TEXT,
-            FOREIGN KEY(run_id) REFERENCES runs(id)
-        )
-        """
-    )
-    con.commit()
-
-
-def new_run(con: sqlite3.Connection, mode: str, notes: str = "") -> int:
-    cur = con.cursor()
-    cur.execute("INSERT INTO runs(mode, notes) VALUES (?, ?)", (mode, notes))
     con.commit()
     return cur.lastrowid
 
 
-def end_run(con: sqlite3.Connection, run_id: int) -> None:
-    cur = con.cursor()
-    cur.execute("UPDATE runs SET ended_at=CURRENT_TIMESTAMP WHERE id=?", (run_id,))
+def end_run(con, run_id):
+    con.execute("UPDATE runs SET ended_at=datetime('now') WHERE run_id=?", (run_id,))
     con.commit()
 
 
-def insert_snapshot(con: sqlite3.Connection, run_id: int, data: Dict[str, Any]) -> None:
-    cur = con.cursor()
-    cur.execute(
+def insert_snapshot(con, run_id, row):
+    con.execute(
         """
-        INSERT INTO prices_snapshots(
-            run_id, timestamp, source_view, item_name, price,
-            qty_visible, page_index, scroll_pos, confidence, hash_row
-        ) VALUES(?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO prices_snapshots
+        (run_id, timestamp, source_view, item_name, price, qty_visible, page_index, scroll_pos, confidence, hash_row)
+        VALUES (?,?,?,?,?,?,?,?,?,?)
         """,
         (
             run_id,
-            data["timestamp"],
-            data.get("source_view"),
-            data.get("item_name"),
-            data.get("price"),
-            data.get("qty_visible"),
-            data.get("page_index"),
-            data.get("scroll_pos"),
-            data.get("confidence"),
-            data.get("hash_row"),
+            row["timestamp"],
+            row["source_view"],
+            row["item_name"],
+            row["price"],
+            row.get("qty_visible"),
+            row.get("page_index"),
+            row.get("scroll_pos"),
+            row.get("confidence"),
+            row.get("hash_row"),
         ),
     )
     con.commit()
