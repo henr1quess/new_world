@@ -12,3 +12,12 @@ profiles:
     scroll:
       step_pixels: 240
       pause_ms: 150
+    search:
+      input: {x: 0.32, y: 0.14, w: 0.18, h: 0.04}
+      first_result: {x: 0.18, y: 0.27, w: 0.64, h: 0.05}
+      pause_before_focus_ms: 150
+      pause_after_clear_ms: 80
+      type_interval_ms: 28
+      pause_before_submit_ms: 120
+      pause_before_result_click_ms: 220
+      pause_after_action_ms: 260
