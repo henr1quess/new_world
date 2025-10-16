@@ -41,6 +41,7 @@ CREATE INDEX IF NOT EXISTS idx_actions_ts ON actions_log(ts);
 CREATE INDEX IF NOT EXISTS idx_actions_run ON actions_log(run_id);
 
 -- Catálogo de itens (para categorias, tags e organização de coletas)
+-- Padronizado para a tabela `items` após limpeza de marcadores de merge.
 CREATE TABLE IF NOT EXISTS items (
   item_id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
@@ -49,7 +50,7 @@ CREATE TABLE IF NOT EXISTS items (
   tags TEXT,              -- JSON: ["hot","flip_candidate"]
   source TEXT,            -- 'csv' | 'ocr' | 'manual' | 'wiki'
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT
+  updated_at TEXT         -- atualizado manualmente conforme necessário
 );
 
 CREATE INDEX IF NOT EXISTS idx_items_cat ON items(category, subcategory);
