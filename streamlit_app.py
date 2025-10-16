@@ -122,7 +122,9 @@ if not DB.exists():
     st.stop()
 
 # --- UI principal ---
-tab1, tab2, tab3 = st.tabs(["📈 Snapshots", "🧾 Ações (log)", "📚 Items"])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["📈 Snapshots", "🧾 Ações (log)", "📚 Items", "📑 Orders"]
+)
 
 with tab1:
     df = _read_sql(
@@ -209,3 +211,34 @@ with tab3:
         )
     except Exception:
         st.info("Ainda não há tabela `items` (importe via CSV ou varra uma categoria).")
+
+with tab4:
+    try:
+        df_o = _read_sql(
+            """
+            SELECT my_order_id, item_name, side, price, qty_requested, qty_filled,
+                   status, placed_at, last_seen_at, settlement
+            FROM my_orders
+            ORDER BY datetime(placed_at) DESC
+            """
+        )
+        if not df_o.empty:
+            qty_filled = pd.to_numeric(df_o["qty_filled"], errors="coerce")
+            qty_requested = pd.to_numeric(df_o["qty_requested"], errors="coerce").replace(0, pd.NA)
+            df_o["fill_ratio"] = qty_filled.divide(qty_requested)
+        st.dataframe(df_o, use_container_width=True)
+        if st.button("Reconciliar agora"):
+            _run_bg(
+                [
+                    sys.executable,
+                    "-m",
+                    "src.main",
+                    "run-jobs",
+                    "--file",
+                    jobs_file,
+                    "--job",
+                    "reconcile_orders",
+                ]
+            )
+    except Exception:
+        st.info("Ainda não há tabela `my_orders` (importe ou gere dados de pedidos).")
