@@ -16,3 +16,10 @@ jobs:
     subcategory: null
     limit_items: 60
     views: ["BUY_LIST"]
+
+  # 3) Reconciliar ordens abertas com os últimos snapshots (My Orders)
+  - kind: reconcile_orders
+    price_match_epsilon: 0.01
+    snapshot_window_minutes: 180
+    close_missing_after_minutes: null      # defina (em minutos) para fechar ordens não vistas
+    missing_close_status: null             # exemplo: "CANCELLED" ou "EXPIRED"
