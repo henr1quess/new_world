@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 SCHEMA_PATH = Path(__file__).resolve().parents[2] / "schema.sql"
 DB_PATH = Path(__file__).resolve().parents[2] / "data" / "market.db"
