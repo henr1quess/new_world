@@ -7,6 +7,7 @@ from src.ocr.extract import scan_once
 from src.storage.db import end_run, ensure_db, insert_snapshot, new_run
 
 app = typer.Typer(add_completion=False)
+
 BASE = Path(__file__).resolve().parents[1]
 CFG_OCR = BASE / "config" / "ocr.yaml"
 CFG_UI = BASE / "config" / "ui_profiles.yaml"
@@ -18,10 +19,7 @@ def scan(
     pages: int = typer.Option(3, help="quantas páginas (scrolls) estimar"),
     out_json: str = typer.Option("", help="salvar também em JSON (opcional)"),
 ):
-    """
-    Nível 0: captura uma amostra da lista (12 linhas por página) e salva no SQLite.
-    Abra o market e deixe a lista visível (compra ou venda), em modo janela/borderless.
-    """
+    """Nível 0: captura uma amostra da lista (12 linhas por página) e salva no SQLite."""
     con = ensure_db()
     run_id = new_run(con, mode="scan", notes=f"{source_view}")
     all_rows = []
@@ -38,7 +36,9 @@ def scan(
                 insert_snapshot(con, run_id, r)
             all_rows.extend(rows)
         if out_json:
-            Path(out_json).write_text(json.dumps(all_rows, indent=2), encoding="utf-8")
+            Path(out_json).write_text(
+                json.dumps(all_rows, indent=2), encoding="utf-8"
+            )
     finally:
         end_run(con, run_id)
 
