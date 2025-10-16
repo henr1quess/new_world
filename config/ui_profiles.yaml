@@ -1,45 +1,74 @@
 profiles:
   "2560x1440@100%":
     anchors:
-      market_title: {x: 0.50, y: 0.08, w: 0.20, h: 0.05}
-      header_row:   {x: 0.10, y: 0.16, w: 0.80, h: 0.05}   # área que mostra "Buy Orders" / "Sell Orders"
-      search_box:   {x: 0.25, y: 0.12, w: 0.30, h: 0.05}   # campo de pesquisa global do market
-      results_zone: {x: 0.25, y: 0.17, w: 0.50, h: 0.30}   # lista de resultados após digitar
-      buy_tab:      {x: 0.12, y: 0.18, w: 0.08, h: 0.05}   # aba "Buy" (ajuste!)
-      sell_tab:     {x: 0.21, y: 0.18, w: 0.08, h: 0.05}   # aba "Sell" (ajuste!)
-      category_menu:{x: 0.08, y: 0.22, w: 0.10, h: 0.60}   # AJUSTE: região do menu lateral
-      category_ores:{x: 0.10, y: 0.30, w: 0.18, h: 0.04}   # AJUSTE: linha/botão "Ores" dentro do menu
-      list_zone:    {x: 0.56, y: 0.22, w: 0.39, h: 0.69}   # lista da direita (SELL)
-      item_back_btn:     {x: 0.16, y: 0.28, w: 0.06, h: 0.05}  # (opcional) botão "Back"
-      place_buy_button:  {x: 0.15, y: 0.58, w: 0.22, h: 0.06}  # "Place Buy Order"
-      buy_panel_zone:    {x: 0.62, y: 0.12, w: 0.34, h: 0.32}  # área rolável do painel
-      buy_panel_close:   {x: 0.95, y: 0.10, w: 0.02, h: 0.03}  # (se tiver "X" visível)
-      my_orders_zone:    {x: 0.12, y: 0.26, w: 0.76, h: 0.60}   # AJUSTE: área da grade "MY ORDERS"
-      footer_zone:  {x: 0.10, y: 0.90, w: 0.80, h: 0.06}
+      # abas/topo
+      buy_tab:         {x: 0.135, y: 0.110, w: 0.085, h: 0.055}
+      sell_tab:        {x: 0.235, y: 0.110, w: 0.085, h: 0.055}
+      my_orders_tab:   {x: 0.360, y: 0.110, w: 0.160, h: 0.055}
+
+      # busca e resultados (coluna da esquerda)
+      search_box:      {x: 0.090, y: 0.168, w: 0.330, h: 0.055}
+      results_zone:    {x: 0.090, y: 0.235, w: 0.330, h: 0.355}
+
+      # lista grande da direita (tanto na tela principal quanto dentro do item)
+      list_zone:       {x: 0.405, y: 0.205, w: 0.560, h: 0.700}
+      header_row:      {x: 0.405, y: 0.180, w: 0.560, h: 0.045}
+      footer_zone:     {x: 0.405, y: 0.910, w: 0.560, h: 0.050}
+
+      # painel do item (coluna esquerda quando você entra num item)
+      item_back_btn:       {x: 0.175, y: 0.238, w: 0.070, h: 0.045}
+      place_buy_button:    {x: 0.200, y: 0.545, w: 0.220, h: 0.060}
+      place_sell_button:   {x: 0.200, y: 0.610, w: 0.220, h: 0.060}
+
+      # modal "PLACE * ORDER" (inputs + botões)
+      unit_price_input:    {x: 0.355, y: 0.222, w: 0.230, h: 0.055}
+      quantity_input:      {x: 0.355, y: 0.330, w: 0.095, h: 0.055}
+      duration_dropdown:   {x: 0.355, y: 0.435, w: 0.190, h: 0.055}
+      confirm_button:      {x: 0.640, y: 0.885, w: 0.180, h: 0.070}
+      cancel_button:       {x: 0.360, y: 0.885, w: 0.180, h: 0.070}
+
+      # (opcional) mini-tabelas dentro do modal – normalmente não precisamos
+      buy_panel_zone:      {x: 0.700, y: 0.210, w: 0.255, h: 0.225}  # CURRENT BUY ORDERS (topo)
+      buy_panel_close:     {x: 0.945, y: 0.105, w: 0.020, h: 0.030}  # X do modal, se existir
+
+      # my orders (quando for calibrar essa aba)
+      my_orders_zone:      {x: 0.120, y: 0.260, w: 0.760, h: 0.600}
+
+    # colunas da LISTA GRANDE (list_zone) — usamos pra ler preço/qty
     columns:
-      name:  {x: 0.02, w: 0.38}
-      price: {x: 0.47, w: 0.14}
-      qty:   {x: 0.87, w: 0.10}
+      name:   {x: 0.04,  w: 0.42}
+      price:  {x: 0.57,  w: 0.16}
+      qty:    {x: 0.92,  w: 0.07}   # “Avail.” (quantidade da oferta)
+
+    # colunas da mini-tabela do modal (se você quiser usar)
     buy_panel_columns:
-      price: {x: 0.06, w: 0.22}
-      qty:   {x: 0.78, w: 0.18}
+      price:  {x: 0.03,  w: 0.45}
+      qty:    {x: 0.75,  w: 0.22}
+
+    # colunas para a aba "My Orders" (quando usar reconciliação)
     my_orders_columns:
-      price:         {x: 0.56, w: 0.14}
-      qty_remaining: {x: 0.74, w: 0.12}
       item_name:     {x: 0.08, w: 0.42}
       side:          {x: 0.02, w: 0.05}
+      price:         {x: 0.56, w: 0.14}
+      qty_remaining: {x: 0.74, w: 0.12}
+
     scroll:
       step_pixels: 240
       pause_ms: 150
+
     buy_panel_scroll:
       step_pixels: 180
       pause_ms: 150
+
     search:
-      input: {x: 0.32, y: 0.14, w: 0.18, h: 0.04}
-      first_result: {x: 0.18, y: 0.27, w: 0.64, h: 0.05}
+      input: {x: 0.090, y: 0.168, w: 0.330, h: 0.055}
+      first_result: {x: 0.095, y: 0.305, w: 0.320, h: 0.060}
+      confirm_first_result: true
+      confirm_min_conf: 0.55
       pause_before_focus_ms: 150
       pause_after_clear_ms: 80
       type_interval_ms: 28
       pause_before_submit_ms: 120
       pause_before_result_click_ms: 220
+      pause_before_confirm_ms: 220
       pause_after_action_ms: 260

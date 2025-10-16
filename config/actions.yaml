@@ -1,7 +1,5 @@
-# Roteiros de ações básicas do market (offline)
-# Você pode ajustar textos esperados (OCR) e a sequência de passos.
-
 actions:
+  # já existe, mas aqui vai a versão alinhada com seus anchors
   open_item:
     steps:
       - {type: click, anchor: search_box}
@@ -11,30 +9,25 @@ actions:
       - {type: click, anchor: results_zone}
       - {type: sleep_ms, ms: 300}
 
-  open_buy_orders:
+  open_place_buy:
     steps:
       - {type: click, anchor: place_buy_button}
-      - {type: sleep_ms, ms: 300}   # se quiser, ponha um wait mais robusto depois
+      - {type: sleep_ms, ms: 250}
 
-  open_sell_orders:
+  open_place_sell:
     steps:
-      - {type: click, anchor: sell_tab}
-      - {type: wait_header_contains, text: "sell", timeout_ms: 2000}  # confirma "Sell"
-      - {type: sleep_ms, ms: 200}
+      - {type: click, anchor: place_sell_button}
+      - {type: sleep_ms, ms: 250}
 
-  open_my_orders:
+  # preencher e confirmar (compartilhado p/ buy/sell modais)
+  fill_order_and_confirm:
     steps:
-      - {type: click, anchor: my_orders_tab}
+      - {type: click, anchor: unit_price_input}
+      - {type: type_clear}
+      - {type: type_text, text: "<unit_price>"}   # exemplo: "1.23"
+      - {type: click, anchor: quantity_input}
+      - {type: type_clear}
+      - {type: type_text, text: "<quantity>"}     # exemplo: "100"
       - {type: sleep_ms, ms: 200}
-      - {type: wait_header_contains, text: "orders", timeout_ms: 2500}
-      - {type: sleep_ms, ms: 200}
-      # se houver sub-aba (BUY/SELL) dentro de My Orders, adicione passos extras
-
-  # Exemplo: abrir a categoria "Ores" no menu lateral (AJUSTE as âncoras no ui_profiles.yaml)
-  open_category_Ores:
-    steps:
-      - {type: click, anchor: category_menu}
-      - {type: sleep_ms, ms: 160}
-      - {type: click, anchor: category_ores}
-      - {type: sleep_ms, ms: 180}
-      - {type: wait_header_contains, text: "ores", timeout_ms: 2500}
+      - {type: click, anchor: confirm_button}
+      - {type: sleep_ms, ms: 300}
