@@ -1,71 +1,77 @@
+from __future__ import annotations
+
 from pathlib import Path
-import time
+from typing import Any, Dict
+
 import yaml
-import pyautogui as pg
+import win32api
+import win32con
+import win32gui
 
 from .calibrate import relative_rect
-from .window import get_screen_resolution, get_window_rect
+from .window import get_screen_resolution, get_window_rect, human_pause
 
 
-def _center_of(rect):
-    x, y, w, h = rect
-    return x + w // 2, y + h // 2
+BASE = Path(__file__).resolve().parents[2]
+CFG_CAPTURE = BASE / "config" / "capture.yaml"
 
 
-def _load_yaml(path: Path) -> dict:
-    if not path.exists():
-        return {}
-
-    with path.open("r", encoding="utf-8") as stream:
-        return yaml.safe_load(stream) or {}
+def _load_ui_profile(ui_cfg_path: str) -> Dict[str, Any]:
+    with open(ui_cfg_path, "r", encoding="utf-8") as fh:
+        ui_cfg = yaml.safe_load(fh)
+    return next(iter(ui_cfg["profiles"].values()))
 
 
-def focus_and_scroll_one_page(ui_cfg_path: str, pixels: int | None = None, pause_ms: int | None = None) -> None:
-    """
-    Clica no centro da list_zone e executa scroll para baixo.
-    - 'pixels' e 'pause_ms' são sobrescritos pelos valores do UI profile se existirem.
-    """
-    ui_cfg = _load_yaml(Path(ui_cfg_path))
-    profiles = ui_cfg.get("profiles") or {}
-    if not profiles:
-        raise ValueError("UI config must contain at least one profile")
+def _load_capture_cfg() -> Dict[str, Any]:
+    if CFG_CAPTURE.exists():
+        with open(CFG_CAPTURE, "r", encoding="utf-8") as fh:
+            return yaml.safe_load(fh) or {}
+    return {}
 
-    prof = next(iter(profiles.values()))
-    anchors = prof.get("anchors") or {}
-    if "list_zone" not in anchors:
-        raise ValueError("Profile must define a 'list_zone' anchor")
 
-    list_anchor = anchors["list_zone"]
-    scroll_cfg = prof.get("scroll") or {}
-    step_px = scroll_cfg.get("step_pixels", pixels if pixels is not None else 240)
-    pause_ms_value = scroll_cfg.get("pause_ms", pause_ms if pause_ms is not None else 150)
+def _focus_window() -> Dict[str, Any] | None:
+    capture_cfg = _load_capture_cfg()
+    title_hint = capture_cfg.get("window_title_contains")
+    if not title_hint:
+        return None
 
-    # Janela alvo a partir de config/capture.yaml (se disponível)
-    cap_cfg_path = Path(__file__).resolve().parents[2] / "config" / "capture.yaml"
-    cap_cfg = _load_yaml(cap_cfg_path)
-    title_sub = (cap_cfg.get("window_title_contains") or "").strip()
-    wnd = get_window_rect(title_sub) if title_sub else None
+    win = get_window_rect(title_hint)
+    if not win:
+        return None
 
-    if wnd:
-        base_size = (wnd["w"], wnd["h"])
-        list_rect = relative_rect(list_anchor, base_size)
-        cx, cy = _center_of(list_rect)
-        ax, ay = wnd["x"] + cx, wnd["y"] + cy
-    else:
-        base_size = get_screen_resolution()
-        list_rect = relative_rect(list_anchor, base_size)
-        ax, ay = _center_of(list_rect)
+    hwnd = win.get("handle")
+    if hwnd:
+        try:
+            win32gui.SetForegroundWindow(hwnd)
+        except win32gui.error:
+            # If the window cannot be focused, continue without raising.
+            pass
+    return win
 
-    # Focar list_zone e rolar
-    pg.moveTo(ax, ay, duration=0.05)
-    pg.click()
 
-    if step_px == 0:
-        time.sleep(pause_ms_value / 1000)
+def focus_and_scroll_one_page(ui_cfg_path: str) -> None:
+    """Bring the target window to the foreground and scroll the list once."""
+
+    profile = _load_ui_profile(ui_cfg_path)
+    scroll_cfg: Dict[str, Any] = profile.get("scroll", {})
+
+    if _focus_window() is None:
         return
 
-    # Aproximação: ~120px ≈ 1 notch. pyautogui.scroll usa "notches".
-    notches = max(1, int(abs(step_px) / 120))
-    direction = -1 if step_px >= 0 else 1
-    pg.scroll(direction * notches)
-    time.sleep(pause_ms_value / 1000)
+    screen = get_screen_resolution()
+    list_zone = relative_rect(profile["anchors"]["list_zone"], screen)
+    lx, ly, lw, lh = list_zone
+
+    cx = lx + lw // 2
+    cy = ly + min(lh - 1, int(0.5 * lh))
+
+    win32api.SetCursorPos((cx, cy))
+    human_pause(scroll_cfg.get("pause_before_scroll_ms", 80))
+
+    step_pixels = scroll_cfg.get("step_pixels", 240)
+    wheel_steps = max(1, int(round(step_pixels / 120.0)))
+    wheel_delta = -wheel_steps * win32con.WHEEL_DELTA
+    win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 0, 0, wheel_delta, 0)
+
+    pause_ms = scroll_cfg.get("pause_ms", 150)
+    human_pause(pause_ms)

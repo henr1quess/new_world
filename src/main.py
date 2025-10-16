@@ -3,6 +3,7 @@ from pathlib import Path
 
 import typer
 
+from src.capture.scroll import focus_and_scroll_one_page
 from src.ocr.extract import scan_once
 from src.storage.db import end_run, ensure_db, insert_snapshot, new_run
 
@@ -35,6 +36,10 @@ def scan(
             for r in rows:
                 insert_snapshot(con, run_id, r)
             all_rows.extend(rows)
+
+            if p < pages - 1:
+                # rolar para a próxima "página" da lista (exceto após a última)
+                focus_and_scroll_one_page(str(CFG_UI))
         if out_json:
             Path(out_json).write_text(
                 json.dumps(all_rows, indent=2), encoding="utf-8"
