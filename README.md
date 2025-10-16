@@ -149,10 +149,7 @@ sqlite3 data/market.db ".tables"  # (opcional) checar se criou
 
 ### 7.1 `config/capture.yaml`
 ```yaml
-window_select:
-  mode: foreground_process     # foreground_process | title_match | whole_screen
-  process_name: "SEU_JOGO.exe" # nome do executável
-  title_contains: ""           # usado se mode=title_match
+window_title_contains: "Market"     # parte do título da janela do jogo
 max_pages: 50
 retry:
   ocr_max_retries: 2
@@ -257,15 +254,19 @@ python -m src.main dashboard
 Acesse o link local (normalmente `http://localhost:8501`) para filtrar e **Exportar CSV**.
 
 ### 9.4 Jobs (sequências automatizadas)
-- Defina um arquivo YAML com uma lista de jobs, ex.: `jobs.yaml`.
+- Defina um arquivo YAML com uma lista de jobs, ex.: `config/jobs.yaml`.
 - Tipos suportados:
   - `collect_watchlist`: abre itens (via `open_item`) e coleta BUY/SELL.
   - `collect_category`: navega por uma categoria pré-configurada e cadastra itens.
-- Execute:
+- Executar uma vez:
   ```bash
-  python -m src.main jobs --jobs-file jobs.yaml
+  python -m src.main run_jobs --file config/jobs.yaml
   ```
-- O scheduler garante que a janela monitorada está ativa antes de iniciar cada job (aborta se a janela não estiver disponível).
+- Observar o arquivo e reexecutar quando salvar:
+  ```bash
+  python -m src.main watch_jobs --file config/jobs.yaml
+  ```
+- O scheduler garante que a janela monitorada está ativa antes de cada job (aborta se a janela não estiver disponível).
 
 ---
 
