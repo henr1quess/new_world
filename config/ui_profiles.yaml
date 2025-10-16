@@ -1,0 +1,14 @@
+profiles:
+  "2560x1440@100%":
+    anchors:
+      market_title: {x: 0.50, y: 0.08, w: 0.20, h: 0.05}
+      header_row:   {x: 0.10, y: 0.16, w: 0.80, h: 0.05}
+      list_zone:    {x: 0.10, y: 0.22, w: 0.80, h: 0.66}
+      footer_zone:  {x: 0.10, y: 0.90, w: 0.80, h: 0.06}
+    columns:
+      name:  {x: 0.02, w: 0.50}
+      price: {x: 0.58, w: 0.20}
+      qty:   {x: 0.80, w: 0.18}
+    scroll:
+      step_pixels: 240
+      pause_ms: 150
