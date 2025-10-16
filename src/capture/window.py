@@ -5,6 +5,20 @@ from typing import Dict, Optional, Tuple
 from PIL import ImageGrab
 import win32gui
 
+# --- DPI awareness (corrige capturas em 125%/150%) ---
+def _enable_dpi_awareness():
+    import ctypes
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # Per-monitor DPI aware
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
+
+_enable_dpi_awareness()
+# ------------------------------------------------------
+
 
 def get_screen_resolution() -> Tuple[int, int]:
     """Return the current screen resolution as ``(width, height)``."""
