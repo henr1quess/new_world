@@ -25,8 +25,10 @@ actions:
   open_my_orders:
     steps:
       - {type: click, anchor: my_orders_tab}
-      - {type: wait_header_contains, text: "orders", timeout_ms: 2000}
       - {type: sleep_ms, ms: 200}
+      - {type: wait_header_contains, text: "orders", timeout_ms: 2500}
+      - {type: sleep_ms, ms: 200}
+      # se houver sub-aba (BUY/SELL) dentro de My Orders, adicione passos extras
 
   # Exemplo: abrir a categoria "Ores" no menu lateral (AJUSTE as âncoras no ui_profiles.yaml)
   open_category_Ores:

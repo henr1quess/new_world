@@ -21,8 +21,13 @@ REQUIRED_ANCHORS = [
     "header_row",
     "list_zone",
     "footer_zone",
+    "buy_panel_zone",
+    "my_orders_zone",
 ]
 REQUIRED_COLUMNS = ["name", "price", "qty"]
+BUY_PANEL_COLUMNS = ["price", "qty"]
+MY_ORDERS_COLUMNS = ["price", "qty_remaining"]
+MY_ORDERS_OPTIONAL_COLUMNS = ["item_name", "side"]
 
 def _grab_window_img():
     with open(CFG_CAPTURE, "r", encoding="utf-8") as fh:
@@ -51,6 +56,47 @@ def _norm(rect, base):
     bw,bh = base
     return {"x": round(x/bw,5), "y": round(y/bh,5), "w": round(w/bw,5), "h": round(h/bh,5)}
 
+
+def _select_columns_in_zone(
+    img,
+    base,
+    anchors,
+    zone_key: str,
+    required_cols,
+    optional_cols=None,
+    title_prefix: str = "",
+):
+    print(f"== Seleção de COLUNAS (dentro de {zone_key}) ==")
+    lx, ly, lw, lh = relative_rect(anchors[zone_key], base)
+    sub = img[int(ly):int(ly+lh), int(lx):int(lx+lw)].copy()
+
+    cols = {}
+    for cname in required_cols:
+        roi = _select_roi(sub, f"{title_prefix}Column: {cname}", "Selecione a largura/área da coluna (ENTER).")
+        if not roi:
+            raise SystemExit(f"Coluna obrigatória '{cname}' não definida.")
+        rx,ry,rw,rh = roi
+        cols[cname] = {
+            "x": round((rx)/lw,5),
+            "w": round(rw/lw,5)
+        }
+
+    for cname in optional_cols or []:
+        roi = _select_roi(
+            sub,
+            f"{title_prefix}Column: {cname}",
+            "Selecione a coluna (ENTER) ou ESC para pular.",
+        )
+        if not roi:
+            continue
+        rx,ry,rw,rh = roi
+        cols[cname] = {
+            "x": round((rx)/lw,5),
+            "w": round(rw/lw,5)
+        }
+    return cols
+
+
 def main(profile: str = ""):
     (wx,wy,ww,wh), img = _grab_window_img()
     base = (ww, wh)
@@ -63,21 +109,24 @@ def main(profile: str = ""):
             raise SystemExit(f"Âncora obrigatória '{name}' não definida.")
         anchors[name] = _norm(roi, base)
 
-    print("== Seleção de COLUNAS (dentro de list_zone) ==")
-    lx, ly, lw, lh = relative_rect(anchors["list_zone"], base)
-    sub = img[int(ly):int(ly+lh), int(lx):int(lx+lw)].copy()
-
-    cols = {}
-    for cname in REQUIRED_COLUMNS:
-        roi = _select_roi(sub, f"Column: {cname}", "Selecione a largura/área da coluna (ENTER).")
-        if not roi:
-            raise SystemExit(f"Coluna obrigatória '{cname}' não definida.")
-        rx,ry,rw,rh = roi
-        # mapear para coords relativas da janela
-        cols[cname] = {
-            "x": round((rx)/lw,5),
-            "w": round(rw/lw,5)
-        }
+    cols = _select_columns_in_zone(img, base, anchors, "list_zone", REQUIRED_COLUMNS)
+    buy_panel_cols = _select_columns_in_zone(
+        img,
+        base,
+        anchors,
+        "buy_panel_zone",
+        BUY_PANEL_COLUMNS,
+        title_prefix="Buy Panel "
+    )
+    my_orders_cols = _select_columns_in_zone(
+        img,
+        base,
+        anchors,
+        "my_orders_zone",
+        MY_ORDERS_COLUMNS,
+        optional_cols=MY_ORDERS_OPTIONAL_COLUMNS,
+        title_prefix="My Orders "
+    )
 
     # carregar UI existente (se houver) e inserir/atualizar perfil
     ui = {}
@@ -92,6 +141,8 @@ def main(profile: str = ""):
     ui["profiles"][profile] = {
         "anchors": anchors,
         "columns": cols,
+        "buy_panel_columns": buy_panel_cols,
+        "my_orders_columns": my_orders_cols,
         "scroll": {"step_pixels": 240, "pause_ms": 150}
     }
 

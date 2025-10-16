@@ -227,6 +227,19 @@ with tab4:
             qty_requested = pd.to_numeric(df_o["qty_requested"], errors="coerce").replace(0, pd.NA)
             df_o["fill_ratio"] = qty_filled.divide(qty_requested)
         st.dataframe(df_o, use_container_width=True)
+        st.subheader("My Orders (snapshots OCR)")
+        try:
+            df_s = _read_sql(
+                """
+                SELECT ts, item_name, side, price, qty_remaining
+                FROM my_orders_snapshots
+                ORDER BY datetime(ts) DESC
+                """
+            )
+        except Exception:
+            st.info("Ainda não há tabela `my_orders_snapshots` (execute OCR de My Orders).")
+        else:
+            st.dataframe(df_s, use_container_width=True)
         if st.button("Reconciliar agora"):
             _run_bg(
                 [
