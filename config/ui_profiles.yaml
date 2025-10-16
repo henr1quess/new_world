@@ -2,6 +2,8 @@ profiles:
   "2560x1440@100%":
     anchors:
       market_title: {x: 0.50, y: 0.08, w: 0.20, h: 0.05}
+      search_box:   {x: 0.25, y: 0.12, w: 0.30, h: 0.05}
+      results_zone: {x: 0.25, y: 0.17, w: 0.50, h: 0.30}
       header_row:   {x: 0.10, y: 0.16, w: 0.80, h: 0.05}
       list_zone:    {x: 0.10, y: 0.22, w: 0.80, h: 0.66}
       footer_zone:  {x: 0.10, y: 0.90, w: 0.80, h: 0.06}
