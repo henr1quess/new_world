@@ -1,0 +1,9 @@
+engine_order: ["paddle", "tesseract"]
+tesseract:
+  path: "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+  psm: 6
+  oem: 3
+  whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,-% "
+postprocess:
+  price_regex: "(\\d+(?:[\\.,]\\d{1,2})?)"
+  min_confidence: 0.65
