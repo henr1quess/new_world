@@ -1,0 +1,24 @@
+# Roteiros de ações básicas do market (offline)
+# Você pode ajustar textos esperados (OCR) e a sequência de passos.
+
+actions:
+  open_item:
+    steps:
+      - {type: click, anchor: search_box}
+      - {type: type_clear}
+      - {type: type_text, text: "<item_name>"}
+      - {type: sleep_ms, ms: 300}
+      - {type: click, anchor: results_zone}
+      - {type: wait_item_first_row, timeout_ms: 3000}   # confirma que abriu a lista do item
+
+  open_buy_orders:
+    steps:
+      - {type: click, anchor: buy_tab}
+      - {type: wait_header_contains, text: "buy", timeout_ms: 2000}   # confirma "Buy"
+      - {type: sleep_ms, ms: 200}
+
+  open_sell_orders:
+    steps:
+      - {type: click, anchor: sell_tab}
+      - {type: wait_header_contains, text: "sell", timeout_ms: 2000}  # confirma "Sell"
+      - {type: sleep_ms, ms: 200}
