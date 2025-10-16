@@ -13,3 +13,4 @@ structlog==24.1.0
 streamlit==1.38.0
 pandas==2.2.2
 pyautogui==0.9.54
+PyYAML==6.0.2
