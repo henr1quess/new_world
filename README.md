@@ -110,6 +110,21 @@ offline-market-bot/
 
 ## 6) Instalação rápida
 
+## 6.1) Calibração (definir regiões sem “olhar a olho”)
+1. Abra o jogo no **market** (modo janela/borderless).
+2. Ajuste `config/capture.yaml: window_title_contains` para algo que exista no título da janela.
+3. Rode o calibrador e siga as janelas de seleção:
+   ```bash
+   python -m src.tools.calibrate_ui
+   ```
+   Ele pedirá, na ordem: `search_box`, `results_zone`, `header_row`, `list_zone`, `footer_zone` e as colunas `name`, `price`, `qty`.  
+   O resultado é salvo em `config/ui_profiles.yaml` como proporções da **janela**.
+
+4. (Opcional) Teste o OCR numa área à sua escolha:
+   ```bash
+   python -m src.tools.ocr_probe
+   ```
+
 1. **Python & venv**
 ```bash
 python -m venv .venv
