@@ -157,3 +157,82 @@ def scan_once(
             }
         )
     return rows
+
+
+def scan_my_orders(ocr_cfg_path: str, ui_cfg_path: str,
+                   page_index: int = 0, scroll_pos: float = 0.0) -> List[Dict]:
+    """
+    Lê a tabela da aba 'MY ORDERS' usando anchors 'my_orders_zone' e
+    'my_orders_columns' em ui_profiles.yaml.
+    Espera colunas: price, qty (ou qty_remaining), (opcional) side, item_name.
+    """
+    ui = _load_ui_cfg(ui_cfg_path)
+    prof = next(iter(ui["profiles"].values()))
+    anchors = prof["anchors"]
+    cols = prof.get("my_orders_columns", {}) or {}
+
+    if "my_orders_zone" not in anchors or "price" not in cols:
+        return []
+
+    cap_cfg_path = Path(__file__).resolve().parents[2] / "config" / "capture.yaml"
+    cap_cfg = _load_capture_cfg(str(cap_cfg_path))
+    title_contains = (cap_cfg.get("window_title_contains") or "").strip()
+    window_info = get_window_rect(title_contains) if title_contains else None
+
+    if window_info:
+        base_size = (window_info["w"], window_info["h"])
+
+        def cap_fn(x, y, w, h):
+            return capture_rect_in_window(window_info["x"], window_info["y"], x, y, w, h)
+
+    else:
+        base_size = get_screen_resolution()
+
+        def cap_fn(x, y, w, h):
+            return capture_rect(x, y, w, h)
+
+    lx, ly, lw, lh = relative_rect(anchors["my_orders_zone"], base_size)
+    rows_per_page = int(prof.get("my_orders_rows", 10))
+    line_h = max(1, int(lh / rows_per_page))
+
+    engine = OCREngine(load_ocr_config(ocr_cfg_path))
+    out: List[Dict] = []
+
+    for i in range(rows_per_page):
+        y0 = ly + i * line_h
+
+        def read(colname: str) -> tuple[str, float]:
+            if colname not in cols:
+                return ("", 1.0)
+            cx = lx + int(cols[colname]["x"] * lw)
+            cw = max(1, int(cols[colname]["w"] * lw))
+            rect = (cx, y0, cw, line_h)
+            return engine.text_and_conf(cap_fn(*rect))
+
+        price_txt, conf_p = read("price")
+        price = parse_price(price_txt)
+        if price is None:
+            continue
+
+        qty_name = "qty_remaining" if "qty_remaining" in cols else "qty"
+        qty_txt, conf_q = read(qty_name)
+        qty_digits = "".join(ch for ch in qty_txt if ch.isdigit())
+        qty_val = int(qty_digits) if qty_digits else None
+
+        name_txt, conf_n = read("item_name")
+        side_txt, conf_s = read("side")
+
+        conf = float(min(conf_p, conf_q, conf_n, conf_s))
+        if conf < MIN_CONF:
+            continue
+
+        out.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "item_name": " ".join(name_txt.split()) if name_txt else "",
+            "side": (side_txt or "").strip().upper() or "BUY",
+            "price": price,
+            "qty_remaining": qty_val,
+            "page_index": page_index,
+            "scroll_pos": scroll_pos,
+        })
+    return out

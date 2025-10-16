@@ -12,7 +12,8 @@ import pyautogui as pg
 
 from src.exec.runner import ActionRunner
 from src.exec.watchdog import assert_window_alive
-from src.ocr.extract import scan_once
+from src.ocr.extract import scan_once, scan_my_orders
+from src.capture.scroll import focus_and_scroll
 from src.storage.db import (
     ensure_db,
     insert_action,
@@ -198,22 +199,24 @@ class JobScheduler:
                 {"reason": "open_ui_disabled"},
             )
 
+        # 2) Ler a grade "My Orders" com OCR (várias páginas com scroll)
+        pages = int(job.get("pages", 3))
         imported_rows = 0
-        for row in job.get("snapshots", []) or []:
-            if not isinstance(row, dict):
-                continue
-            required_keys = {"item_name", "side", "price"}
-            if not required_keys.issubset(row):
-                continue
-            insert_my_order_snapshot(self.con, row)
-            imported_rows += 1
-        if imported_rows:
-            insert_action(
-                self.con,
-                run_id,
-                "reconcile_orders:snapshots_imported",
-                {"rows": imported_rows},
-            )
+        for p in range(pages):
+            rows = scan_my_orders(self.cfg_ocr, self.cfg_ui, page_index=p, scroll_pos=float(p))
+            for r in rows:
+                insert_my_order_snapshot(self.con, r)
+            imported_rows += len(rows)
+            if p < pages - 1:
+                # rolar na área correta (defina anchor 'my_orders_zone' no profile)
+                focus_and_scroll(self.cfg_ui, anchor_name="my_orders_zone")
+
+        insert_action(
+            self.con,
+            run_id,
+            "reconcile_orders:snapshots_imported",
+            {"rows": imported_rows},
+        )
 
         params: List[Any] = []
         query = """
