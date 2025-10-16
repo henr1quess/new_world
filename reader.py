@@ -105,7 +105,7 @@ def collect_files(root: Path,
     # remover duplicados preservando ordem
     seen = set()
     unique = []
-    for f in sorted(files):
+    for f in files:
         if f not in seen:
             unique.append(f); seen.add(f)
     return unique
