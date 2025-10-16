@@ -30,7 +30,20 @@ DEFAULT_EXCLUDE_FILES = {".env", ".env.local", ".env.example"}
 DEFAULT_ALWAYS_INCLUDE_NAMES = {"schema.sql", "README.md", "requirements.txt"}
 
 # ---------- Utils ----------
-def is_textual(p: Path) -> bool:
+def is_textual(p: Path,
+               textual_exts: set[str] | None = None,
+               always_include_names: set[str] | None = None) -> bool:
+    """Best-effort heuristic to detect textual files."""
+    if textual_exts or always_include_names:
+        suffix = p.suffix.lower()
+        name_lower = p.name.lower()
+        allowed = False
+        if textual_exts and suffix and suffix in textual_exts:
+            allowed = True
+        if always_include_names and name_lower in always_include_names:
+            allowed = True
+        if textual_exts and not allowed:
+            return False
     try:
         raw = p.read_bytes()[:4096]
     except Exception:
@@ -113,7 +126,9 @@ def collect_files(root: Path,
 def write_markdown(root: Path,
                    out_path: Path,
                    files: list[Path],
-                   max_bytes: int) -> None:
+                   max_bytes: int,
+                   include_exts: set[str],
+                   always_include_names: set[str]) -> None:
     now = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with out_path.open("w", encoding="utf-8", newline="\n") as w:
         w.write("# Project Snapshot\n\n")
@@ -124,12 +139,13 @@ def write_markdown(root: Path,
         w.write(build_tree(files, root))
         w.write("\n```\n\n## Files\n\n")
 
+        always_include_names_lower = {name.lower() for name in always_include_names}
         for p in files:
             rel = norm_relpath(root, p)
             size = p.stat().st_size
             lang = ext_to_lang(p.suffix, p.name)
             w.write(f"### {rel}\n\n> size: {size} bytes\n\n")
-            if not is_textual(p):
+            if not is_textual(p, include_exts, always_include_names_lower):
                 w.write("_skipped (binary or unreadable)_\n\n")
                 continue
             try:
@@ -145,7 +161,19 @@ def write_markdown(root: Path,
             except UnicodeDecodeError:
                 text = data.decode("utf-8", errors="replace")
             fence = lang if lang else ""
-            w.write(f"```{fence}\n{text}\n```\n\n")
+            longest_run = 0
+            current_run = 0
+            for ch in text:
+                if ch == "`":
+                    current_run += 1
+                    if current_run > longest_run:
+                        longest_run = current_run
+                else:
+                    current_run = 0
+            fence_len = max(3, longest_run + 1)
+            fence_seq = "`" * fence_len
+            lang_suffix = f" {fence}" if fence else ""
+            w.write(f"{fence_seq}{lang_suffix}\n{text}\n{fence_seq}\n\n")
             if clipped:
                 w.write(f"_content clipped to first {max_bytes} bytes_\n\n")
 
@@ -182,7 +210,7 @@ def main():
     if not files:
         print("Nenhum arquivo encontrado com os filtros atuais.", file=sys.stderr)
 
-    write_markdown(root, out_path, files, max_bytes)
+    write_markdown(root, out_path, files, max_bytes, include_exts, include_names)
     print(f"OK: gerado {out_path}")
 
 if __name__ == "__main__":
