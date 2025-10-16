@@ -1,17 +1,27 @@
 from __future__ import annotations
 from pathlib import Path
+
 import cv2
+import numpy as np
 import yaml
 from PIL import ImageGrab
 
 from ..capture.window import get_window_rect
 from ..capture.calibrate import relative_rect
 
-CFG_DIR = Path(__file__).resolve().parents[3] / "config"
+CFG_DIR = Path(__file__).resolve().parents[2] / "config"
 CFG_UI = CFG_DIR / "ui_profiles.yaml"
 CFG_CAPTURE = CFG_DIR / "capture.yaml"
 
-REQUIRED_ANCHORS = ["search_box", "results_zone", "header_row", "list_zone", "footer_zone"]
+REQUIRED_ANCHORS = [
+    "search_box",
+    "results_zone",
+    "buy_tab",
+    "sell_tab",
+    "header_row",
+    "list_zone",
+    "footer_zone",
+]
 REQUIRED_COLUMNS = ["name", "price", "qty"]
 
 def _grab_window_img():
@@ -21,30 +31,10 @@ def _grab_window_img():
     wnd = get_window_rect(title) if title else None
     if not wnd:
         raise SystemExit("Janela do jogo não encontrada. Ajuste config/capture.yaml: window_title_contains.")
-    x,y,w,h = wnd["x"], wnd["y"], wnd["w"], wnd["h"]
-    img = ImageGrab.grab(bbox=(x, y, x+w, y+h))
-    return (x,y,w,h), cv2.cvtColor(cv2.cvtColor(
-        cv2.imdecode(cv2.imencode(".png", cv2.cvtColor(cv2.cvtColor(
-            cv2.cvtColor(
-                cv2.UMat(cv2.cvtColor(cv2.cvtColor(
-                    cv2.UMat(cv2.cvtColor(cv2.cvtColor(
-                        cv2.UMat(cv2.cvtColor(cv2.cvtColor(
-                            cv2.UMat(cv2.cvtColor(cv2.cvtColor(
-                                cv2.UMat(cv2.cvtColor(cv2.cvtColor(
-                                    cv2.UMat(cv2.cvtColor(cv2.cvtColor(
-                                        cv2.UMat(cv2.cvtColor(cv2.cvtColor(
-                                            cv2.UMat(cv2.cvtColor(
-                                                cv2.cvtColor(cv2.UMat(img), cv2.COLOR_RGB2BGR),
-                                                cv2.COLOR_BGR2RGB
-                                            )), cv2.COLOR_RGB2BGR),
-                                        ), cv2.COLOR_BGR2RGB),
-                                    )), cv2.COLOR_RGB2BGR),
-                                )), cv2.COLOR_BGR2RGB),
-                            )), cv2.COLOR_RGB2BGR),
-                        )), cv2.COLOR_BGR2RGB),
-                    )), cv2.COLOR_BGR2RGB),
-                )), cv2.COLOR_BGR2RGB),
-            ), cv2.COLOR_RGB2BGR), ".png")[1], cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
+    x, y, w, h = wnd["x"], wnd["y"], wnd["w"], wnd["h"]
+    img = ImageGrab.grab(bbox=(x, y, x + w, y + h))
+    arr = np.array(img)
+    return (x, y, w, h), cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
 
 def _select_roi(img, title, help_text="Selecione e tecle ENTER (ESC para pular)."):
     tmp = img.copy()
