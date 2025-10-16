@@ -22,3 +22,14 @@ actions:
       - {type: click, anchor: sell_tab}
       - {type: wait_header_contains, text: "sell", timeout_ms: 2000}  # confirma "Sell"
       - {type: sleep_ms, ms: 200}
+
+  # Exemplo de navegação por categoria (ajuste anchors no ui_profiles.yaml)
+  open_category_Ores:
+    steps:
+      - {type: click, anchor: buy_tab}
+      - {type: sleep_ms, ms: 150}
+      - {type: click, anchor: categories_panel}     # defina no ui_profiles.yaml
+      - {type: sleep_ms, ms: 120}
+      - {type: click, anchor: category_ores}        # defina no ui_profiles.yaml
+      - {type: sleep_ms, ms: 200}
+      - {type: wait_header_contains, text: "buy", timeout_ms: 2000}

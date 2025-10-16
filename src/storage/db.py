@@ -64,3 +64,20 @@ def insert_action(con, run_id, action, details=None, success=1, notes=None):
         (run_id, action, details, success, notes),
     )
     con.commit()
+
+
+def upsert_item(con, *, name, category=None, subcategory=None, tags_json=None, source=None):
+    con.execute(
+        """
+        INSERT INTO items_catalog (name, category, subcategory, tags_json, source, updated_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(name) DO UPDATE SET
+            category=excluded.category,
+            subcategory=excluded.subcategory,
+            tags_json=excluded.tags_json,
+            source=excluded.source,
+            updated_at=datetime('now')
+        """,
+        (name, category, subcategory, tags_json, source),
+    )
+    con.commit()

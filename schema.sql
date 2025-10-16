@@ -39,3 +39,13 @@ CREATE TABLE IF NOT EXISTS actions_log (
 
 CREATE INDEX IF NOT EXISTS idx_actions_ts ON actions_log(ts);
 CREATE INDEX IF NOT EXISTS idx_actions_run ON actions_log(run_id);
+
+CREATE TABLE IF NOT EXISTS items_catalog (
+  item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  category TEXT,
+  subcategory TEXT,
+  tags_json TEXT,
+  source TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
