@@ -9,14 +9,24 @@ profiles:
       sell_tab:     {x: 0.21, y: 0.18, w: 0.08, h: 0.05}   # aba "Sell" (ajuste!)
       category_menu:{x: 0.08, y: 0.22, w: 0.10, h: 0.60}   # AJUSTE: região do menu lateral
       category_ores:{x: 0.10, y: 0.30, w: 0.18, h: 0.04}   # AJUSTE: linha/botão "Ores" dentro do menu
-      list_zone:    {x: 0.10, y: 0.22, w: 0.80, h: 0.66}
+      list_zone:    {x: 0.56, y: 0.22, w: 0.39, h: 0.69}   # lista da direita (SELL)
+      item_back_btn:     {x: 0.16, y: 0.28, w: 0.06, h: 0.05}  # (opcional) botão "Back"
+      place_buy_button:  {x: 0.15, y: 0.58, w: 0.22, h: 0.06}  # "Place Buy Order"
+      buy_panel_zone:    {x: 0.62, y: 0.12, w: 0.34, h: 0.32}  # área rolável do painel
+      buy_panel_close:   {x: 0.95, y: 0.10, w: 0.02, h: 0.03}  # (se tiver "X" visível)
       footer_zone:  {x: 0.10, y: 0.90, w: 0.80, h: 0.06}
     columns:
-      name:  {x: 0.02, w: 0.50}
-      price: {x: 0.58, w: 0.20}
-      qty:   {x: 0.80, w: 0.18}
+      name:  {x: 0.02, w: 0.38}
+      price: {x: 0.47, w: 0.14}
+      qty:   {x: 0.87, w: 0.10}
+    buy_panel_columns:
+      price: {x: 0.06, w: 0.22}
+      qty:   {x: 0.78, w: 0.18}
     scroll:
       step_pixels: 240
+      pause_ms: 150
+    buy_panel_scroll:
+      step_pixels: 180
       pause_ms: 150
     search:
       input: {x: 0.32, y: 0.14, w: 0.18, h: 0.04}
