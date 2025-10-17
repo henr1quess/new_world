@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+""" 
 Gera um único arquivo Markdown com:
 1) árvore do projeto (apenas itens incluídos)
 2) conteúdo integral de cada arquivo selecionado
